@@ -9,6 +9,7 @@ import {
 import { z } from "zod";
 import {
   createOrUpdateFile,
+  deleteFile,
   getMarkdownFiles,
   listDirectory,
   readFileContent,
@@ -80,7 +81,7 @@ const vaultTools = {
 
   createNote: tool({
     description:
-      "Create a new note in the vault with proper Obsidian frontmatter. Commits directly to GitHub.",
+      "Create a new note in the vault with proper Obsidian frontmatter. Commits directly to GitHub. Requires user approval.",
     inputSchema: z.object({
       path: z
         .string()
@@ -97,6 +98,7 @@ const vaultTools = {
         .describe("Note type for frontmatter"),
       tags: z.array(z.string()).optional().describe("Tags for the note"),
     }),
+    needsApproval: true,
     execute: async ({ path, title, content, type, tags }) => {
       const frontmatter = `---
 type: ${type}
@@ -120,6 +122,26 @@ ${content}`;
       };
     },
   }),
+
+  deleteNote: tool({
+    description:
+      "Delete a note from the vault. Commits directly to GitHub. Requires user approval. Use with caution - this action is irreversible.",
+    inputSchema: z.object({
+      path: z
+        .string()
+        .describe('Full path to the note, e.g. "Notes/Old Idea.md"'),
+    }),
+    needsApproval: true,
+    execute: async ({ path }) => {
+      const title = path.split("/").pop()?.replace(/\.md$/, "") || path;
+      await deleteFile(path, `Delete note: ${title}`);
+      return {
+        deleted: path,
+        message: `Deleted note: ${title}`,
+        committed: true,
+      };
+    },
+  }),
 };
 
 const systemPrompt = `You are Pensieve, a personal AI assistant that helps examine thoughts stored in an Obsidian vault.
@@ -132,7 +154,8 @@ Like Dumbledore's Pensieve, you help the user:
 ## Your Tools
 - listNotes: Discover notes. Supports glob patterns like "*agent*", "Learning/*"
 - readNote: Read a specific note's full content
-- createNote: Create new notes (commits directly to GitHub)
+- createNote: Create new notes (requires user approval)
+- deleteNote: Delete notes (requires user approval - use with caution)
 
 ## Agentic Retrieval Strategy
 Use pattern matching to efficiently find relevant notes:

@@ -1,9 +1,15 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type ToolUIPart } from "ai";
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithApprovalResponses,
+  type ToolUIPart,
+} from "ai";
 import {
   CheckCircleIcon,
+  CheckIcon,
+  ChevronDownIcon,
   CopyIcon,
   Loader2Icon,
   LogOutIcon,
@@ -11,10 +17,20 @@ import {
   PlusIcon,
   RefreshCcwIcon,
   XCircleIcon,
+  XIcon,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import {
+  Confirmation,
+  ConfirmationAccepted,
+  ConfirmationAction,
+  ConfirmationActions,
+  ConfirmationRejected,
+  ConfirmationRequest,
+  ConfirmationTitle,
+} from "@/components/ai-elements/confirmation";
 import {
   Conversation,
   ConversationContent,
@@ -63,6 +79,11 @@ import {
 import { NoteMentionPopup } from "@/components/note-mention-popup";
 import { SessionSidebar } from "@/components/session-sidebar";
 import { Button } from "@/components/ui/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { VaultMarkdown } from "@/components/vault-markdown";
 import {
   createSession,
@@ -109,8 +130,16 @@ export default function ChatPage() {
     [],
   );
 
-  const { messages, sendMessage, status, regenerate, setMessages } = useChat({
+  const {
+    messages,
+    sendMessage,
+    status,
+    regenerate,
+    setMessages,
+    addToolApprovalResponse,
+  } = useChat({
     transport,
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
     onFinish: async ({ message }) => {
       if (sessionId && message) {
         await saveMessage(sessionId, {
@@ -372,25 +401,186 @@ export default function ChatPage() {
                                 <div className="mt-3 space-y-2">
                                   {toolParts.map(({ part, index }) => {
                                     const toolPart = part as ToolUIPart;
+                                    const toolName = toolPart.type
+                                      .split("-")
+                                      .slice(1)
+                                      .join("-");
+                                    const needsApprovalTools = [
+                                      "createNote",
+                                      "deleteNote",
+                                    ];
+                                    const isDestructive =
+                                      needsApprovalTools.includes(toolName);
+
                                     return (
-                                      <Tool
-                                        key={`${message.id}-tool-${index}`}
-                                        defaultOpen={
-                                          toolPart.state === "output-error"
-                                        }
-                                      >
-                                        <ToolHeader
-                                          type={toolPart.type}
-                                          state={toolPart.state}
-                                        />
-                                        <ToolContent>
-                                          <ToolInput input={toolPart.input} />
-                                          <ToolOutput
-                                            output={toolPart.output}
-                                            errorText={toolPart.errorText}
+                                      <div key={`${message.id}-tool-${index}`}>
+                                        <Tool
+                                          defaultOpen={
+                                            toolPart.state === "output-error" ||
+                                            toolPart.state ===
+                                              "approval-requested"
+                                          }
+                                        >
+                                          <ToolHeader
+                                            type={toolPart.type}
+                                            state={toolPart.state}
                                           />
-                                        </ToolContent>
-                                      </Tool>
+                                          <ToolContent>
+                                            <ToolInput input={toolPart.input} />
+                                            <ToolOutput
+                                              output={toolPart.output}
+                                              errorText={toolPart.errorText}
+                                            />
+                                          </ToolContent>
+                                        </Tool>
+
+                                        {isDestructive && toolPart.approval && (
+                                          <Confirmation
+                                            approval={toolPart.approval}
+                                            state={toolPart.state}
+                                            className="mt-2"
+                                          >
+                                            <ConfirmationTitle>
+                                              <ConfirmationRequest>
+                                                {toolName === "deleteNote" ? (
+                                                  <>
+                                                    Delete{" "}
+                                                    <code className="inline rounded bg-muted px-1.5 py-0.5 text-sm">
+                                                      {(
+                                                        toolPart.input as {
+                                                          path?: string;
+                                                        }
+                                                      )?.path || "note"}
+                                                    </code>
+                                                    ? This cannot be undone.
+                                                  </>
+                                                ) : (
+                                                  (() => {
+                                                    const input =
+                                                      toolPart.input as {
+                                                        path?: string;
+                                                        title?: string;
+                                                        content?: string;
+                                                        type?: string;
+                                                        tags?: string[];
+                                                      };
+                                                    return (
+                                                      <div className="space-y-2">
+                                                        <div>
+                                                          Create note at{" "}
+                                                          <code className="inline rounded bg-muted px-1.5 py-0.5 text-sm">
+                                                            {input?.path ||
+                                                              "path"}
+                                                          </code>
+                                                          ?
+                                                        </div>
+                                                        <Collapsible>
+                                                          <CollapsibleTrigger className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors group">
+                                                            <ChevronDownIcon className="size-4 transition-transform group-data-[state=open]:rotate-180" />
+                                                            Preview content
+                                                          </CollapsibleTrigger>
+                                                          <CollapsibleContent>
+                                                            <div className="mt-2 rounded-md border bg-muted/50 p-3 text-sm space-y-2">
+                                                              <div className="flex gap-2">
+                                                                <span className="text-muted-foreground">
+                                                                  Title:
+                                                                </span>
+                                                                <span className="font-medium">
+                                                                  {input?.title ||
+                                                                    "Untitled"}
+                                                                </span>
+                                                              </div>
+                                                              <div className="flex gap-2">
+                                                                <span className="text-muted-foreground">
+                                                                  Type:
+                                                                </span>
+                                                                <span>
+                                                                  {input?.type ||
+                                                                    "note"}
+                                                                </span>
+                                                              </div>
+                                                              {input?.tags &&
+                                                                input.tags
+                                                                  .length >
+                                                                  0 && (
+                                                                  <div className="flex gap-2">
+                                                                    <span className="text-muted-foreground">
+                                                                      Tags:
+                                                                    </span>
+                                                                    <span>
+                                                                      {input.tags.join(
+                                                                        ", ",
+                                                                      )}
+                                                                    </span>
+                                                                  </div>
+                                                                )}
+                                                              <div className="pt-2 border-t">
+                                                                <div className="text-muted-foreground mb-1">
+                                                                  Content:
+                                                                </div>
+                                                                <div className="whitespace-pre-wrap text-foreground max-h-48 overflow-y-auto">
+                                                                  {input?.content ||
+                                                                    "No content"}
+                                                                </div>
+                                                              </div>
+                                                            </div>
+                                                          </CollapsibleContent>
+                                                        </Collapsible>
+                                                      </div>
+                                                    );
+                                                  })()
+                                                )}
+                                              </ConfirmationRequest>
+                                              <ConfirmationAccepted>
+                                                <CheckIcon className="size-4 text-green-600 dark:text-green-400" />
+                                                <span>
+                                                  {toolName === "deleteNote"
+                                                    ? "You approved the deletion"
+                                                    : "You approved the creation"}
+                                                </span>
+                                              </ConfirmationAccepted>
+                                              <ConfirmationRejected>
+                                                <XIcon className="size-4 text-destructive" />
+                                                <span>
+                                                  {toolName === "deleteNote"
+                                                    ? "You rejected the deletion"
+                                                    : "You rejected the creation"}
+                                                </span>
+                                              </ConfirmationRejected>
+                                            </ConfirmationTitle>
+                                            <ConfirmationActions>
+                                              <ConfirmationAction
+                                                onClick={() =>
+                                                  addToolApprovalResponse({
+                                                    id: toolPart.approval!.id,
+                                                    approved: false,
+                                                  })
+                                                }
+                                                variant="outline"
+                                              >
+                                                Reject
+                                              </ConfirmationAction>
+                                              <ConfirmationAction
+                                                onClick={() =>
+                                                  addToolApprovalResponse({
+                                                    id: toolPart.approval!.id,
+                                                    approved: true,
+                                                  })
+                                                }
+                                                variant={
+                                                  toolName === "deleteNote"
+                                                    ? "destructive"
+                                                    : "default"
+                                                }
+                                              >
+                                                {toolName === "deleteNote"
+                                                  ? "Delete"
+                                                  : "Create"}
+                                              </ConfirmationAction>
+                                            </ConfirmationActions>
+                                          </Confirmation>
+                                        )}
+                                      </div>
                                     );
                                   })}
                                 </div>

@@ -157,3 +157,34 @@ export async function getMarkdownFiles(): Promise<
 > {
   return listDirectoryRecursive("");
 }
+
+export async function deleteFile(
+  path: string,
+  message: string,
+): Promise<{ path: string; deleted: boolean }> {
+  const { owner, repo, branch } = getRepoConfig();
+  const octokit = getOctokit();
+
+  // First get the file's SHA (required for deletion)
+  const { data } = await octokit.rest.repos.getContent({
+    owner,
+    repo,
+    path,
+    ref: branch,
+  });
+
+  if (Array.isArray(data) || data.type !== "file") {
+    throw new Error(`Path is not a file: ${path}`);
+  }
+
+  await octokit.rest.repos.deleteFile({
+    owner,
+    repo,
+    path,
+    message,
+    sha: data.sha,
+    branch,
+  });
+
+  return { path, deleted: true };
+}
