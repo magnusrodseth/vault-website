@@ -1,11 +1,23 @@
-import { readFile as fsReadFile } from "fs/promises";
-import { join, dirname } from "path";
+import { existsSync } from "fs";
+import {
+  readFile as fsReadFile,
+  writeFile as fsWriteFile,
+  mkdir,
+} from "fs/promises";
 import { glob } from "glob";
-import { mkdir, writeFile as fsWriteFile } from "fs/promises";
+import { dirname, join } from "path";
+import { syncVault } from "./sync";
 
 const VAULT_PATH = process.env.VAULT_PATH || "/tmp/vault";
 
+async function ensureVaultExists() {
+  if (!existsSync(VAULT_PATH)) {
+    await syncVault();
+  }
+}
+
 export async function searchVault(query: string, folder?: string) {
+  await ensureVaultExists();
   const pattern = folder ? `${folder}/**/*.md` : "**/*.md";
   const files = await glob(pattern, {
     cwd: VAULT_PATH,
@@ -33,6 +45,7 @@ export async function readFile(path: string) {
 }
 
 export async function listFiles(folder?: string) {
+  await ensureVaultExists();
   const cwd = folder ? join(VAULT_PATH, folder) : VAULT_PATH;
   const files = await glob("**/*.md", {
     cwd,
@@ -48,6 +61,7 @@ export async function writeFile(path: string, content: string) {
 }
 
 export async function getAllNotes() {
+  await ensureVaultExists();
   const files = await glob("**/*.md", {
     cwd: VAULT_PATH,
     ignore: ["node_modules/**", ".git/**", ".obsidian/**"],
