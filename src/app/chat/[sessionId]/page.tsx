@@ -66,6 +66,7 @@ import { Button } from "@/components/ui/button";
 import { VaultMarkdown } from "@/components/vault-markdown";
 import {
   createSession,
+  deleteSession,
   saveMessage,
   useMessages,
   useSessions,
@@ -196,12 +197,30 @@ export default function ChatPage() {
     router.push(`/chat/${id}`);
   };
 
+  const handleDeleteSession = async (deletedSessionId: string) => {
+    await deleteSession(deletedSessionId);
+
+    if (deletedSessionId === sessionId) {
+      const remainingSessions = (sessions || []).filter(
+        (s) => s.id !== deletedSessionId,
+      );
+
+      if (remainingSessions.length > 0) {
+        router.push(`/chat/${remainingSessions[0].id}`);
+      } else {
+        const newId = await createSession();
+        router.push(`/chat/${newId}`);
+      }
+    }
+  };
+
   return (
     <div className="flex h-dvh">
       <SessionSidebar
         sessions={sessions || []}
         currentSessionId={sessionId}
         onSelectSession={handleSelectSession}
+        onDeleteSession={handleDeleteSession}
         open={sidebarOpen}
         onOpenChange={setSidebarOpen}
       />

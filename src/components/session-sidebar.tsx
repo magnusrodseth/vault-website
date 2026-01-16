@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { MessageSquareIcon, TrashIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -8,14 +8,15 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { MessageSquareIcon, TrashIcon } from "lucide-react";
 import type { Session } from "@/lib/db/dexie";
 import { deleteSession } from "@/lib/db/hooks";
+import { cn } from "@/lib/utils";
 
 interface SessionSidebarProps {
   sessions: Session[];
   currentSessionId: string | null;
   onSelectSession: (id: string) => void;
+  onDeleteSession: (sessionId: string) => Promise<void>;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -24,19 +25,20 @@ export function SessionSidebar({
   sessions,
   currentSessionId,
   onSelectSession,
+  onDeleteSession,
   open,
   onOpenChange,
 }: SessionSidebarProps) {
   const handleDelete = async (e: React.MouseEvent, sessionId: string) => {
     e.stopPropagation();
-    await deleteSession(sessionId);
+    await onDeleteSession(sessionId);
   };
 
   const formatDate = (date: Date) => {
     const now = new Date();
     const d = new Date(date);
     const diffDays = Math.floor(
-      (now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24)
+      (now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24),
     );
 
     if (diffDays === 0) return "Today";
@@ -57,7 +59,7 @@ export function SessionSidebar({
             key={session.id}
             className={cn(
               "group flex items-center gap-2 rounded-md px-2 py-2 cursor-pointer hover:bg-muted",
-              currentSessionId === session.id && "bg-muted"
+              currentSessionId === session.id && "bg-muted",
             )}
             onClick={() => {
               onSelectSession(session.id);
