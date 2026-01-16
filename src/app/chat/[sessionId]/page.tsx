@@ -350,7 +350,7 @@ export default function ChatPage() {
                                   );
                                 })}
 
-                                <div className="mt-4 space-y-2">
+                                <div className="mt-3 space-y-2">
                                   {toolParts.map(({ part, index }) => {
                                     const toolPart = part as ToolUIPart;
                                     return (

@@ -1,13 +1,13 @@
 "use client";
 
+import { ChevronDownIcon, SearchIcon } from "lucide-react";
+import type { ComponentProps } from "react";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
-import { ChevronDownIcon, SearchIcon } from "lucide-react";
-import type { ComponentProps } from "react";
 
 export type TaskItemFileProps = ComponentProps<"div">;
 
@@ -19,7 +19,7 @@ export const TaskItemFile = ({
   <div
     className={cn(
       "inline-flex items-center gap-1 rounded-md border bg-secondary px-1.5 py-0.5 text-foreground text-xs",
-      className
+      className,
     )}
     {...props}
   >
@@ -42,7 +42,11 @@ export const Task = ({
   className,
   ...props
 }: TaskProps) => (
-  <Collapsible className={cn(className)} defaultOpen={defaultOpen} {...props} />
+  <Collapsible
+    className={cn("mb-2", className)}
+    defaultOpen={defaultOpen}
+    {...props}
+  />
 );
 
 export type TaskTriggerProps = ComponentProps<typeof CollapsibleTrigger> & {
@@ -76,11 +80,11 @@ export const TaskContent = ({
   <CollapsibleContent
     className={cn(
       "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 text-popover-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
-      className
+      className,
     )}
     {...props}
   >
-    <div className="mt-4 space-y-2 border-muted border-l-2 pl-4">
+    <div className="mt-2 space-y-1.5 border-muted border-l-2 pl-3">
       {children}
     </div>
   </CollapsibleContent>
