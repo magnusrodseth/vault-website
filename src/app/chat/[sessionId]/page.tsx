@@ -22,7 +22,6 @@ import {
   MessageAction,
   MessageActions,
   MessageContent,
-  MessageResponse,
 } from "@/components/ai-elements/message";
 import {
   PromptInput,
@@ -48,6 +47,7 @@ import { ThinkingIndicator } from "@/components/ai-elements/thinking-indicator";
 import { NoteMentionPopup } from "@/components/note-mention-popup";
 import { SessionSidebar } from "@/components/session-sidebar";
 import { Button } from "@/components/ui/button";
+import { VaultMarkdown } from "@/components/vault-markdown";
 import {
   createSession,
   saveMessage,
@@ -251,7 +251,9 @@ export default function ChatPage() {
                               from={message.role}
                             >
                               <MessageContent>
-                                <MessageResponse>{part.text}</MessageResponse>
+                                <VaultMarkdown notes={notes}>
+                                  {part.text}
+                                </VaultMarkdown>
                               </MessageContent>
                             </Message>
                           );
@@ -299,9 +301,9 @@ export default function ChatPage() {
                 ) : (
                   <Message key={message.id} from={message.role}>
                     <MessageContent>
-                      <MessageResponse>
+                      <VaultMarkdown notes={notes}>
                         {getMessageContent(message)}
-                      </MessageResponse>
+                      </VaultMarkdown>
                     </MessageContent>
                   </Message>
                 )}

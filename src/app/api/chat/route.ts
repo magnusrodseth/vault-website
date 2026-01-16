@@ -16,10 +16,18 @@ import {
 
 export const maxDuration = 30;
 
+function globToRegex(pattern: string): RegExp {
+  const escaped = pattern
+    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+    .replace(/\*/g, ".*")
+    .replace(/\?/g, ".");
+  return new RegExp(escaped, "i");
+}
+
 const vaultTools = {
   listNotes: tool({
     description:
-      "List notes in a folder, or get ALL notes in the vault. Use this to discover what notes exist before reading them.",
+      "List notes in a folder, search by pattern, or get ALL notes. Use this to discover what notes exist before reading them.",
     inputSchema: z.object({
       folder: z
         .string()
@@ -27,15 +35,29 @@ const vaultTools = {
         .describe(
           'Folder path like "Learning" or "Projects". Omit to list root folders.',
         ),
+      pattern: z
+        .string()
+        .optional()
+        .describe(
+          'Glob pattern to filter notes by title/path. Examples: "*autonomy*", "Learning/*", "*agent*". Case-insensitive.',
+        ),
       recursive: z
         .boolean()
         .optional()
-        .describe("If true, lists ALL markdown files in the entire vault"),
+        .describe(
+          "If true, lists ALL markdown files (required when using pattern)",
+        ),
     }),
-    execute: async ({ folder, recursive }) => {
-      if (recursive) {
-        const allFiles = await getMarkdownFiles();
-        return { total: allFiles.length, files: allFiles };
+    execute: async ({ folder, pattern, recursive }) => {
+      if (recursive || pattern) {
+        let files = await getMarkdownFiles();
+        if (pattern) {
+          const regex = globToRegex(pattern);
+          files = files.filter(
+            (f) => regex.test(f.path) || regex.test(f.title),
+          );
+        }
+        return { total: files.length, pattern: pattern || null, files };
       }
       const items = await listDirectory(folder);
       return { folder: folder || "root", items };
@@ -108,16 +130,20 @@ Like Dumbledore's Pensieve, you help the user:
 - Examine memories and notes at leisure
 
 ## Your Tools
-- listNotes: Discover what notes exist (use recursive=true to see ALL notes)
+- listNotes: Discover notes. Supports glob patterns like "*agent*", "Learning/*"
 - readNote: Read a specific note's full content
 - createNote: Create new notes (commits directly to GitHub)
 
 ## Agentic Retrieval Strategy
-You do NOT have a search/grep tool. Instead, use intelligent retrieval:
-1. When asked about a topic, first use listNotes(recursive=true) to see all notes
-2. Identify relevant notes by their titles/paths
-3. Read those specific notes with readNote
-4. Synthesize the information for the user
+Use pattern matching to efficiently find relevant notes:
+1. When asked about a topic, use listNotes(pattern="*topic*") to find matching notes
+2. Read the most relevant notes with readNote
+3. Synthesize the information for the user
+
+Example patterns:
+- "*autonomy*" → finds "Bounded Autonomy", "Agent Autonomy Levels"
+- "Learning/*" → all notes in Learning folder
+- "*agent*loop*" → finds "Agent Loop", "OODA Loop for Agents"
 
 ## Conventions
 - Use [[wiki links]] when referencing notes
