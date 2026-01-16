@@ -1,36 +1,140 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Pensieve
+
+> *"One simply siphons the excess thoughts from one's mind, pours them into the basin, and examines them at one's leisure."*
+> — Albus Dumbledore
+
+A mobile-first AI chat that connects to your Obsidian vault. Search, read, create, and delete notes through natural conversation — all from your phone.
+
+## Features
+
+- **AI-Powered Chat** — Claude understands your vault structure and helps you find connections
+- **Full CRUD** — Create, read, and delete notes with user approval for destructive actions
+- **@ Mentions** — Type `@` to fuzzy-search and reference notes with `[[wiki links]]`
+- **Mobile-First** — PWA-ready with responsive drawer/popup for note search
+- **No Backend DB** — Sessions stored in IndexedDB (Dexie.js), vault synced via GitHub API
+- **Dark Mode** — Because light mode is for people who hate their eyes
+
+## Tech Stack
+
+| Layer | Choice |
+|-------|--------|
+| Framework | Next.js 15 (App Router) |
+| AI | Vercel AI SDK 6 + Claude Sonnet 4 |
+| UI | AI Elements + shadcn/ui + Tailwind |
+| Auth | iron-session + bcrypt password |
+| Storage | Dexie.js (IndexedDB) |
+| Vault | GitHub Contents API (Octokit) |
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+ or Bun
+- An Obsidian vault backed up to GitHub
+- Anthropic API key
+
+### Installation
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Clone the repo
+git clone https://github.com/magnusrodseth/vault-website.git
+cd vault-website
+
+# Install dependencies
+bun install
+
+# Copy environment template
+cp .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Environment Variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```env
+# Auth
+SESSION_SECRET=your-32-character-random-string-here
+APP_PASSWORD_HASH=$2b$10$...  # bcrypt hash of your password
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# AI
+ANTHROPIC_API_KEY=sk-ant-...
 
-## Learn More
+# GitHub (for vault access)
+GITHUB_TOKEN=ghp_...         # Fine-grained PAT with Contents read/write
+GITHUB_REPO=your-username/your-vault-repo
 
-To learn more about Next.js, take a look at the following resources:
+# Vault path (for Vercel, use /tmp/vault)
+VAULT_PATH=/tmp/vault
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Generate a password hash:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+./scripts/generate-password-hash.sh your-password
+```
 
-## Deploy on Vercel
+### Development
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+bun run dev     # Start dev server at localhost:3000
+bun run build   # Production build
+bun run lint    # Biome lint check
+bun run format  # Biome format
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Vault Tools
+
+The AI has access to these tools for interacting with your vault:
+
+| Tool | Description |
+|------|-------------|
+| `listNotes` | Search notes with glob patterns (`*agent*`, `Learning/*`) |
+| `readNote` | Read full content of a note |
+| `createNote` | Create a single note (requires approval) |
+| `createNotes` | Batch create multiple notes (single approval) |
+| `deleteNote` | Delete a single note (requires approval) |
+| `deleteNotes` | Batch delete notes (single approval) |
+
+All write operations commit directly to GitHub.
+
+## Project Structure
+
+```
+src/
+├── app/
+│   ├── (auth)/login/        # Password login
+│   ├── chat/[sessionId]/    # Main chat interface
+│   └── api/
+│       ├── auth/            # Login/logout
+│       ├── chat/            # AI streaming + vault tools
+│       └── vault/           # GitHub API endpoints
+├── components/
+│   ├── ai-elements/         # AI SDK chat components
+│   ├── ui/                  # shadcn/ui components
+│   └── note-mention-popup.tsx
+└── lib/
+    ├── github/api.ts        # Octokit wrapper
+    └── db/                  # Dexie.js schema + hooks
+```
+
+## Deployment
+
+Deploy to Vercel:
+
+```bash
+vercel
+```
+
+Set environment variables in Vercel dashboard, then add your custom domain.
+
+## PWA
+
+Pensieve is PWA-ready. Add to home screen on iOS/Android for a native app experience.
+
+Lighthouse scores:
+- Performance: 96
+- Accessibility: 92
+- Best Practices: 100
+- SEO: 100
+
+## License
+
+MIT
