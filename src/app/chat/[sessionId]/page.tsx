@@ -407,7 +407,9 @@ export default function ChatPage() {
                                       .join("-");
                                     const needsApprovalTools = [
                                       "createNote",
+                                      "createNotes",
                                       "deleteNote",
+                                      "deleteNotes",
                                     ];
                                     const isDestructive =
                                       needsApprovalTools.includes(toolName);
@@ -454,6 +456,170 @@ export default function ChatPage() {
                                                     </code>
                                                     ? This cannot be undone.
                                                   </>
+                                                ) : toolName ===
+                                                  "deleteNotes" ? (
+                                                  (() => {
+                                                    const input =
+                                                      toolPart.input as {
+                                                        paths?: string[];
+                                                      };
+                                                    const pathsArray =
+                                                      input?.paths || [];
+                                                    return (
+                                                      <div className="space-y-2">
+                                                        <div>
+                                                          Delete{" "}
+                                                          <strong className="text-destructive">
+                                                            {pathsArray.length}
+                                                          </strong>{" "}
+                                                          notes? This cannot be
+                                                          undone.
+                                                        </div>
+                                                        <Collapsible>
+                                                          <CollapsibleTrigger className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors group">
+                                                            <ChevronDownIcon className="size-4 transition-transform group-data-[state=open]:rotate-180" />
+                                                            View notes to delete
+                                                          </CollapsibleTrigger>
+                                                          <CollapsibleContent>
+                                                            <div className="mt-2 space-y-1 max-h-64 overflow-y-auto">
+                                                              {pathsArray.map(
+                                                                (
+                                                                  path,
+                                                                  pathIndex,
+                                                                ) => (
+                                                                  <div
+                                                                    key={
+                                                                      path ||
+                                                                      `path-${pathIndex}`
+                                                                    }
+                                                                    className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm"
+                                                                  >
+                                                                    <span className="text-muted-foreground text-xs">
+                                                                      {pathIndex +
+                                                                        1}
+                                                                      .
+                                                                    </span>
+                                                                    <code className="text-xs">
+                                                                      {path}
+                                                                    </code>
+                                                                  </div>
+                                                                ),
+                                                              )}
+                                                            </div>
+                                                          </CollapsibleContent>
+                                                        </Collapsible>
+                                                      </div>
+                                                    );
+                                                  })()
+                                                ) : toolName ===
+                                                  "createNotes" ? (
+                                                  (() => {
+                                                    const input =
+                                                      toolPart.input as {
+                                                        notes?: Array<{
+                                                          path?: string;
+                                                          title?: string;
+                                                          content?: string;
+                                                          type?: string;
+                                                          tags?: string[];
+                                                        }>;
+                                                      };
+                                                    const notesArray =
+                                                      input?.notes || [];
+                                                    return (
+                                                      <div className="space-y-2">
+                                                        <div>
+                                                          Create{" "}
+                                                          <strong>
+                                                            {notesArray.length}
+                                                          </strong>{" "}
+                                                          notes?
+                                                        </div>
+                                                        <Collapsible>
+                                                          <CollapsibleTrigger className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors group">
+                                                            <ChevronDownIcon className="size-4 transition-transform group-data-[state=open]:rotate-180" />
+                                                            Preview all notes
+                                                          </CollapsibleTrigger>
+                                                          <CollapsibleContent>
+                                                            <div className="mt-2 space-y-3 max-h-96 overflow-y-auto">
+                                                              {notesArray.map(
+                                                                (
+                                                                  note,
+                                                                  noteIndex,
+                                                                ) => (
+                                                                  <div
+                                                                    key={
+                                                                      note?.path ||
+                                                                      `note-${noteIndex}`
+                                                                    }
+                                                                    className="rounded-md border bg-muted/50 p-3 text-sm space-y-2"
+                                                                  >
+                                                                    <div className="flex gap-2 items-center">
+                                                                      <span className="text-muted-foreground text-xs">
+                                                                        {noteIndex +
+                                                                          1}
+                                                                        .
+                                                                      </span>
+                                                                      <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                                                                        {note?.path ||
+                                                                          "path"}
+                                                                      </code>
+                                                                    </div>
+                                                                    <div className="flex gap-2">
+                                                                      <span className="text-muted-foreground">
+                                                                        Title:
+                                                                      </span>
+                                                                      <span className="font-medium">
+                                                                        {note?.title ||
+                                                                          "Untitled"}
+                                                                      </span>
+                                                                    </div>
+                                                                    <div className="flex gap-2 flex-wrap">
+                                                                      <span className="text-muted-foreground">
+                                                                        Type:
+                                                                      </span>
+                                                                      <span>
+                                                                        {note?.type ||
+                                                                          "note"}
+                                                                      </span>
+                                                                      {note?.tags &&
+                                                                        note
+                                                                          .tags
+                                                                          .length >
+                                                                          0 && (
+                                                                          <>
+                                                                            <span className="text-muted-foreground ml-2">
+                                                                              Tags:
+                                                                            </span>
+                                                                            <span>
+                                                                              {note.tags.join(
+                                                                                ", ",
+                                                                              )}
+                                                                            </span>
+                                                                          </>
+                                                                        )}
+                                                                    </div>
+                                                                    <Collapsible>
+                                                                      <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors group">
+                                                                        <ChevronDownIcon className="size-3 transition-transform group-data-[state=open]:rotate-180" />
+                                                                        Content
+                                                                      </CollapsibleTrigger>
+                                                                      <CollapsibleContent>
+                                                                        <div className="mt-1 pt-1 border-t whitespace-pre-wrap text-foreground max-h-32 overflow-y-auto text-xs">
+                                                                          {note?.content ||
+                                                                            "No content"}
+                                                                        </div>
+                                                                      </CollapsibleContent>
+                                                                    </Collapsible>
+                                                                  </div>
+                                                                ),
+                                                              )}
+                                                            </div>
+                                                          </CollapsibleContent>
+                                                        </Collapsible>
+                                                      </div>
+                                                    );
+                                                  })()
                                                 ) : (
                                                   (() => {
                                                     const input =
@@ -536,7 +702,12 @@ export default function ChatPage() {
                                                 <span>
                                                   {toolName === "deleteNote"
                                                     ? "You approved the deletion"
-                                                    : "You approved the creation"}
+                                                    : toolName === "deleteNotes"
+                                                      ? "You approved the batch deletion"
+                                                      : toolName ===
+                                                          "createNotes"
+                                                        ? "You approved the batch creation"
+                                                        : "You approved the creation"}
                                                 </span>
                                               </ConfirmationAccepted>
                                               <ConfirmationRejected>
@@ -544,7 +715,12 @@ export default function ChatPage() {
                                                 <span>
                                                   {toolName === "deleteNote"
                                                     ? "You rejected the deletion"
-                                                    : "You rejected the creation"}
+                                                    : toolName === "deleteNotes"
+                                                      ? "You rejected the batch deletion"
+                                                      : toolName ===
+                                                          "createNotes"
+                                                        ? "You rejected the batch creation"
+                                                        : "You rejected the creation"}
                                                 </span>
                                               </ConfirmationRejected>
                                             </ConfirmationTitle>
@@ -568,14 +744,19 @@ export default function ChatPage() {
                                                   })
                                                 }
                                                 variant={
-                                                  toolName === "deleteNote"
+                                                  toolName === "deleteNote" ||
+                                                  toolName === "deleteNotes"
                                                     ? "destructive"
                                                     : "default"
                                                 }
                                               >
                                                 {toolName === "deleteNote"
                                                   ? "Delete"
-                                                  : "Create"}
+                                                  : toolName === "deleteNotes"
+                                                    ? "Delete All"
+                                                    : toolName === "createNotes"
+                                                      ? "Create All"
+                                                      : "Create"}
                                               </ConfirmationAction>
                                             </ConfirmationActions>
                                           </Confirmation>

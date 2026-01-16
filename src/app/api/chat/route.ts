@@ -15,7 +15,7 @@ import {
   readFileContent,
 } from "@/lib/github/api";
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 function globToRegex(pattern: string): RegExp {
   const escaped = pattern
@@ -153,6 +153,99 @@ ${content}`;
       };
     },
   }),
+
+  createNotes: tool({
+    description:
+      "Create multiple notes at once with a single approval. Use when generating a series of related notes (e.g., book chapters, learning series, decomposed concepts). More efficient than multiple createNote calls.",
+    inputSchema: z.object({
+      notes: z
+        .array(
+          z.object({
+            path: z
+              .string()
+              .describe('Where to create, e.g. "Learning/Chapter 1.md"'),
+            title: z.string().describe("Note title"),
+            content: z.string().describe("Note content (body only)"),
+            type: z
+              .enum([
+                "note",
+                "project",
+                "meeting",
+                "daily",
+                "resource",
+                "person",
+                "decision",
+                "learning",
+                "how-to-guide",
+                "brag",
+              ])
+              .default("note"),
+            tags: z.array(z.string()).optional(),
+          }),
+        )
+        .describe("Array of notes to create"),
+    }),
+    needsApproval: true,
+    execute: async ({ notes }) => {
+      const results = [];
+      const date = new Date().toLocaleDateString("en-GB").replace(/\//g, ".");
+
+      for (const note of notes) {
+        const frontmatter = `---
+type: ${note.type}
+created: ${date}
+tags: [${(note.tags || []).join(", ")}]
+---
+
+# ${note.title}
+
+${note.content}`;
+
+        const result = await createOrUpdateFile(
+          note.path,
+          frontmatter,
+          `Create note: ${note.title}`,
+        );
+        results.push({ created: result.path, title: note.title });
+      }
+
+      return {
+        created: results.length,
+        notes: results,
+        message: `Created ${results.length} notes`,
+        committed: true,
+      };
+    },
+  }),
+
+  deleteNotes: tool({
+    description:
+      "Delete multiple notes at once with a single approval. Use when cleaning up a series of notes (e.g., test notes, outdated content). More efficient than multiple deleteNote calls. CAUTION: This action is irreversible.",
+    inputSchema: z.object({
+      paths: z
+        .array(z.string())
+        .describe(
+          'Array of full paths to delete, e.g. ["Notes/Old1.md", "Notes/Old2.md"]',
+        ),
+    }),
+    needsApproval: true,
+    execute: async ({ paths }) => {
+      const results = [];
+
+      for (const path of paths) {
+        const title = path.split("/").pop()?.replace(/\.md$/, "") || path;
+        await deleteFile(path, `Delete note: ${title}`);
+        results.push({ deleted: path, title });
+      }
+
+      return {
+        deleted: results.length,
+        notes: results,
+        message: `Deleted ${results.length} notes`,
+        committed: true,
+      };
+    },
+  }),
 };
 
 const systemPrompt = `You are Pensieve, a personal AI assistant that helps examine thoughts stored in an Obsidian vault.
@@ -165,8 +258,10 @@ Like Dumbledore's Pensieve, you help the user:
 ## Your Tools
 - listNotes: Discover notes. Supports glob patterns like "*agent*", "Learning/*"
 - readNote: Read a specific note's full content
-- createNote: Create new notes (requires user approval)
-- deleteNote: Delete notes (requires user approval - use with caution)
+- createNote: Create a single note (requires user approval)
+- createNotes: Create multiple notes at once with ONE approval (use for series/batches)
+- deleteNote: Delete a single note (requires user approval)
+- deleteNotes: Delete multiple notes at once with ONE approval (use for batch cleanup)
 
 ## Vault Structure
 \`\`\`
@@ -250,7 +345,7 @@ export async function POST(req: Request) {
     system: systemPrompt,
     messages: await convertToModelMessages(messages),
     tools: vaultTools,
-    stopWhen: stepCountIs(5),
+    stopWhen: stepCountIs(15),
   });
 
   return result.toUIMessageStreamResponse({
