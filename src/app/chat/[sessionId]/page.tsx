@@ -200,7 +200,10 @@ export default function ChatPage() {
           >
             <MenuIcon className="h-5 w-5" />
           </Button>
-          <h1 className="text-lg font-semibold flex-1">Pensieve</h1>
+          <div className="flex items-center gap-2 flex-1">
+            <img src="/logo.png" alt="Pensieve" className="h-9 w-9" />
+            <h1 className="text-lg font-semibold">Pensieve</h1>
+          </div>
           <Button variant="ghost" size="icon" onClick={handleNewSession}>
             <PlusIcon className="h-5 w-5" />
           </Button>
