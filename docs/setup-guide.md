@@ -41,13 +41,15 @@ openssl rand -base64 32
 
 #### APP_PASSWORD_HASH
 
-A bcrypt hash of your login password. Generate using Node.js:
+A base64-encoded bcrypt hash of your login password.
+
+Generate one using the provided script:
 
 ```bash
-node -e "const bcrypt = require('bcryptjs'); bcrypt.hash('your-password', 10).then(console.log)"
+./scripts/generate-password-hash.sh your-password
 ```
 
-Or use an online bcrypt generator (use cost factor 10).
+This will automatically update your `.env.local` file.
 
 #### ANTHROPIC_API_KEY
 
@@ -106,7 +108,7 @@ In Vercel project settings, add these environment variables:
 | Variable | Value | Notes |
 |----------|-------|-------|
 | `SESSION_SECRET` | Your 32+ char secret | Generate fresh for production |
-| `APP_PASSWORD_HASH` | bcrypt hash | Same as local or new password |
+| `APP_PASSWORD_HASH` | Base64 bcrypt hash | Generate with script, copy the value |
 | `ANTHROPIC_API_KEY` | `sk-ant-...` | Your Anthropic API key |
 | `GITHUB_TOKEN` | `github_pat_...` | Fine-grained token with repo access |
 | `GITHUB_REPO` | `owner/repo` | Your vault repository |
@@ -164,7 +166,13 @@ vault-website/
 
 ### "Invalid password" on login
 
-Verify your `APP_PASSWORD_HASH` is a valid bcrypt hash of your intended password. Regenerate if needed.
+Regenerate your password hash:
+
+```bash
+./scripts/generate-password-hash.sh your-password
+```
+
+Then restart the dev server.
 
 ### Vault not syncing
 
@@ -190,4 +198,4 @@ This project uses AI SDK v6. If you see type errors related to `maxSteps`, `para
 - Never commit `.env.local` or expose environment variables
 - Use a strong, unique password for the app
 - Rotate `GITHUB_TOKEN` periodically
-- The app uses HTTP-only cookies and bcrypt for authentication
+- The app uses HTTP-only, secure cookies for session management

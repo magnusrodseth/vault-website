@@ -2,7 +2,14 @@
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { CopyIcon, MenuIcon, PlusIcon, RefreshCcwIcon } from "lucide-react";
+import {
+  CopyIcon,
+  LogOutIcon,
+  MenuIcon,
+  PlusIcon,
+  RefreshCcwIcon,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 // AI Elements
 import {

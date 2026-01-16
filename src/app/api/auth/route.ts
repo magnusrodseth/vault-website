@@ -1,20 +1,22 @@
-import { NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
 import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
-import { sessionOptions, type SessionData } from "@/lib/auth/session";
-import bcrypt from "bcryptjs";
+import { NextResponse } from "next/server";
+import { type SessionData, sessionOptions } from "@/lib/auth/session";
 
 export async function POST(req: Request) {
   const { password } = await req.json();
 
-  const passwordHash = process.env.APP_PASSWORD_HASH;
-  if (!passwordHash) {
+  const base64Hash = process.env.APP_PASSWORD_HASH;
+
+  if (!base64Hash) {
     return NextResponse.json(
       { error: "Server not configured" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
+  const passwordHash = Buffer.from(base64Hash, "base64").toString("utf-8");
   const isValid = await bcrypt.compare(password, passwordHash);
 
   if (!isValid) {
@@ -23,7 +25,7 @@ export async function POST(req: Request) {
 
   const session = await getIronSession<SessionData>(
     await cookies(),
-    sessionOptions
+    sessionOptions,
   );
   session.isLoggedIn = true;
   await session.save();
@@ -34,7 +36,7 @@ export async function POST(req: Request) {
 export async function DELETE() {
   const session = await getIronSession<SessionData>(
     await cookies(),
-    sessionOptions
+    sessionOptions,
   );
   session.destroy();
   return NextResponse.json({ success: true });
@@ -43,7 +45,7 @@ export async function DELETE() {
 export async function GET() {
   const session = await getIronSession<SessionData>(
     await cookies(),
-    sessionOptions
+    sessionOptions,
   );
   return NextResponse.json({ isLoggedIn: session.isLoggedIn ?? false });
 }
