@@ -21,6 +21,7 @@ interface NoteMentionPopupProps {
   notes: Note[];
   onSelect: (note: Note) => void;
   onClose: () => void;
+  onBackspaceEmpty: () => void;
   inputRef: RefObject<HTMLTextAreaElement | null>;
   text: string;
   cursorPosition: number;
@@ -91,6 +92,7 @@ export function NoteMentionPopup({
   notes,
   onSelect,
   onClose,
+  onBackspaceEmpty,
   inputRef,
   text,
   cursorPosition,
@@ -225,6 +227,14 @@ export function NoteMentionPopup({
     setSelectedIndex(0);
   };
 
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace" && query === "") {
+      e.preventDefault();
+      setOpen(false);
+      onBackspaceEmpty();
+    }
+  };
+
   if (!open) return null;
 
   return (
@@ -244,6 +254,7 @@ export function NoteMentionPopup({
           type="text"
           value={query}
           onChange={handleSearchChange}
+          onKeyDown={handleSearchKeyDown}
           placeholder="Search notes..."
           className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
         />

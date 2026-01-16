@@ -158,6 +158,19 @@ export default function ChatPage() {
     }
   };
 
+  const handleMentionBackspaceEmpty = () => {
+    const beforeCursor = input.slice(0, cursorPosition);
+    const afterCursor = input.slice(cursorPosition);
+    const match = beforeCursor.match(/@([^\s@]*)$/);
+
+    if (match) {
+      const newText = beforeCursor.slice(0, -match[0].length) + afterCursor;
+      setInput(newText);
+      setCursorPosition(cursorPosition - match[0].length);
+    }
+    textareaRef.current?.focus();
+  };
+
   const handleNewSession = async () => {
     const id = await createSession();
     router.push(`/chat/${id}`);
@@ -301,6 +314,7 @@ export default function ChatPage() {
             notes={notes}
             onSelect={handleMentionSelect}
             onClose={() => {}}
+            onBackspaceEmpty={handleMentionBackspaceEmpty}
             inputRef={textareaRef}
             text={input}
             cursorPosition={cursorPosition}
