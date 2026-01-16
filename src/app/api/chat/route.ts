@@ -8,64 +8,71 @@ import {
 } from "ai";
 import { z } from "zod";
 import {
-  listFiles,
-  readFile,
-  searchVault,
-  writeFile,
-} from "@/lib/vault/search";
+  createOrUpdateFile,
+  getMarkdownFiles,
+  listDirectory,
+  readFileContent,
+} from "@/lib/github/api";
 
 export const maxDuration = 30;
 
 const vaultTools = {
-  search: tool({
-    description: "Search the Obsidian vault for content matching a query",
-    inputSchema: z.object({
-      query: z.string().describe("Search query (grep-style regex)"),
-      folder: z.string().optional().describe('Limit to folder like "Projects"'),
-    }),
-    execute: async ({ query, folder }) => {
-      const results = await searchVault(query, folder);
-      return { matches: results.slice(0, 15) };
-    },
-  }),
-
-  readNote: tool({
-    description: "Read the full content of a specific note by path",
-    inputSchema: z.object({
-      path: z.string().describe('Path like "Projects/EdTech.md"'),
-    }),
-    execute: async ({ path }) => {
-      const content = await readFile(path);
-      return { path, content };
-    },
-  }),
-
   listNotes: tool({
-    description: "List all notes in a folder",
+    description:
+      "List notes in a folder, or get ALL notes in the vault. Use this to discover what notes exist before reading them.",
     inputSchema: z.object({
       folder: z
         .string()
         .optional()
-        .describe('Folder like "Learning" or "Notes/Research"'),
+        .describe(
+          'Folder path like "Learning" or "Projects". Omit to list root folders.',
+        ),
+      recursive: z
+        .boolean()
+        .optional()
+        .describe("If true, lists ALL markdown files in the entire vault"),
     }),
-    execute: async ({ folder }) => {
-      const files = await listFiles(folder);
-      return { folder: folder || "root", files };
+    execute: async ({ folder, recursive }) => {
+      if (recursive) {
+        const allFiles = await getMarkdownFiles();
+        return { total: allFiles.length, files: allFiles };
+      }
+      const items = await listDirectory(folder);
+      return { folder: folder || "root", items };
+    },
+  }),
+
+  readNote: tool({
+    description:
+      "Read the full content of a specific note. Use the exact path from listNotes.",
+    inputSchema: z.object({
+      path: z
+        .string()
+        .describe('Full path like "Learning/Bounded Autonomy.md"'),
+    }),
+    execute: async ({ path }) => {
+      const content = await readFileContent(path);
+      return { path, content };
     },
   }),
 
   createNote: tool({
-    description: "Create a new note with proper frontmatter",
+    description:
+      "Create a new note in the vault with proper Obsidian frontmatter. Commits directly to GitHub.",
     inputSchema: z.object({
-      path: z.string().describe('Where to create, e.g. "Notes/New Idea.md"'),
-      title: z.string().describe("Note title"),
+      path: z
+        .string()
+        .describe(
+          'Where to create, e.g. "Notes/New Idea.md" (must end in .md)',
+        ),
+      title: z.string().describe("Note title (used in heading)"),
       content: z
         .string()
-        .describe("Note content (body only, frontmatter auto-added)"),
+        .describe("Note content (body only, frontmatter auto-generated)"),
       type: z
         .enum(["note", "learning", "decision", "brag"])
         .default("note")
-        .describe("Type of note"),
+        .describe("Note type for frontmatter"),
       tags: z.array(z.string()).optional().describe("Tags for the note"),
     }),
     execute: async ({ path, title, content, type, tags }) => {
@@ -79,8 +86,16 @@ tags: [${(tags || []).join(", ")}]
 
 ${content}`;
 
-      await writeFile(path, frontmatter);
-      return { created: path, message: `Created note: ${title}` };
+      const result = await createOrUpdateFile(
+        path,
+        frontmatter,
+        `Create note: ${title}`,
+      );
+      return {
+        created: result.path,
+        message: `Created note: ${title}`,
+        committed: true,
+      };
     },
   }),
 };
@@ -93,10 +108,16 @@ Like Dumbledore's Pensieve, you help the user:
 - Examine memories and notes at leisure
 
 ## Your Tools
-- search: Find content across all notes
-- readNote: Read a specific note's full content  
-- listNotes: See what notes exist in a folder
-- createNote: Create new notes with proper frontmatter
+- listNotes: Discover what notes exist (use recursive=true to see ALL notes)
+- readNote: Read a specific note's full content
+- createNote: Create new notes (commits directly to GitHub)
+
+## Agentic Retrieval Strategy
+You do NOT have a search/grep tool. Instead, use intelligent retrieval:
+1. When asked about a topic, first use listNotes(recursive=true) to see all notes
+2. Identify relevant notes by their titles/paths
+3. Read those specific notes with readNote
+4. Synthesize the information for the user
 
 ## Conventions
 - Use [[wiki links]] when referencing notes
@@ -104,10 +125,10 @@ Like Dumbledore's Pensieve, you help the user:
 - Be concise — the user may be on mobile
 
 ## Behavior
-1. When asked about something, SEARCH first
-2. Cite sources with [[Note Name]] wiki links
-3. Help spot patterns and connections
-4. If creating notes, follow the vault's frontmatter standard`;
+1. When the user mentions [[Note Name]], find and read that note
+2. When asked about a topic, list all notes first, then read relevant ones
+3. Cite sources with [[Note Name]] wiki links
+4. Help spot patterns and connections across notes`;
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
