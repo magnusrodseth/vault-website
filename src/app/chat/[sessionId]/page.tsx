@@ -3,11 +3,14 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type ToolUIPart } from "ai";
 import {
+  CheckCircleIcon,
   CopyIcon,
+  Loader2Icon,
   LogOutIcon,
   MenuIcon,
   PlusIcon,
   RefreshCcwIcon,
+  XCircleIcon,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -43,6 +46,12 @@ import {
   SourcesContent,
   SourcesTrigger,
 } from "@/components/ai-elements/sources";
+import {
+  Task,
+  TaskContent,
+  TaskItem,
+  TaskTrigger,
+} from "@/components/ai-elements/task";
 import { ThinkingIndicator } from "@/components/ai-elements/thinking-indicator";
 import {
   Tool,
@@ -249,69 +258,161 @@ export default function ChatPage() {
 
                 {message.parts?.length > 0 ? (
                   <>
-                    {message.parts.map((part, i) => {
-                      switch (part.type) {
-                        case "text":
+                    {(() => {
+                      const toolParts = message.parts
+                        .map((p, i) => ({ part: p, index: i }))
+                        .filter(({ part }) => part.type.startsWith("tool-"));
+                      const nonToolParts = message.parts.filter(
+                        (p) => !p.type.startsWith("tool-"),
+                      );
+                      const isLastMessage = message.id === messages.at(-1)?.id;
+                      const hasRunningTools =
+                        status === "streaming" &&
+                        isLastMessage &&
+                        toolParts.some(({ part }) => {
+                          const tp = part as ToolUIPart;
                           return (
-                            <Message
-                              key={`${message.id}-${i}`}
-                              from={message.role}
-                            >
-                              <MessageContent>
-                                <VaultMarkdown notes={notes}>
-                                  {part.text}
-                                </VaultMarkdown>
-                              </MessageContent>
-                            </Message>
+                            tp.state !== "output-available" &&
+                            tp.state !== "output-error"
                           );
-                        case "reasoning":
-                          return (
-                            <Reasoning
-                              key={`${message.id}-${i}`}
-                              isStreaming={status === "streaming"}
-                            >
-                              <ReasoningTrigger />
-                              <ReasoningContent>{part.text}</ReasoningContent>
-                            </Reasoning>
-                          );
-                        default: {
-                          if (part.type.startsWith("tool-")) {
-                            const toolPart = part as ToolUIPart;
-                            const isLastPart = i === message.parts.length - 1;
-                            const isLastMessage =
-                              message.id === messages.at(-1)?.id;
-                            const isRunning =
-                              status === "streaming" &&
-                              isLastPart &&
-                              isLastMessage &&
-                              toolPart.state !== "output-available" &&
-                              toolPart.state !== "output-error";
+                        });
+                      const allCompleted = toolParts.every(({ part }) => {
+                        const tp = part as ToolUIPart;
+                        return tp.state === "output-available";
+                      });
+                      const hasError = toolParts.some(({ part }) => {
+                        const tp = part as ToolUIPart;
+                        return tp.state === "output-error";
+                      });
 
-                            return (
-                              <Tool
-                                key={`${message.id}-${i}`}
-                                defaultOpen={
-                                  isRunning || toolPart.state === "output-error"
+                      return (
+                        <>
+                          {toolParts.length > 0 && (
+                            <Task defaultOpen={hasRunningTools || hasError}>
+                              <TaskTrigger
+                                title={
+                                  hasRunningTools
+                                    ? "Searching vault..."
+                                    : hasError
+                                      ? "Encountered an error"
+                                      : `Completed ${toolParts.length} step${toolParts.length > 1 ? "s" : ""}`
                                 }
-                              >
-                                <ToolHeader
-                                  type={toolPart.type}
-                                  state={toolPart.state}
-                                />
-                                <ToolContent>
-                                  <ToolInput input={toolPart.input} />
-                                  <ToolOutput
-                                    output={toolPart.output}
-                                    errorText={toolPart.errorText}
-                                  />
-                                </ToolContent>
-                              </Tool>
-                            );
-                          }
-                          return null;
-                        }
-                      }
-                    })}
+                              />
+                              <TaskContent>
+                                {toolParts.map(({ part, index }) => {
+                                  const toolPart = part as ToolUIPart;
+                                  const toolName = toolPart.type
+                                    .split("-")
+                                    .slice(1)
+                                    .join("-");
+                                  const isComplete =
+                                    toolPart.state === "output-available";
+                                  const isError =
+                                    toolPart.state === "output-error";
+                                  const isRunning =
+                                    !isComplete &&
+                                    !isError &&
+                                    status === "streaming" &&
+                                    isLastMessage;
+
+                                  return (
+                                    <TaskItem
+                                      key={`${message.id}-task-${index}`}
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        {isComplete && (
+                                          <CheckCircleIcon className="size-4 text-green-500" />
+                                        )}
+                                        {isError && (
+                                          <XCircleIcon className="size-4 text-red-500" />
+                                        )}
+                                        {isRunning && (
+                                          <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
+                                        )}
+                                        {!isComplete &&
+                                          !isError &&
+                                          !isRunning && (
+                                            <CheckCircleIcon className="size-4 text-muted-foreground" />
+                                          )}
+                                        <span
+                                          className={
+                                            isComplete
+                                              ? "text-foreground"
+                                              : isError
+                                                ? "text-red-500"
+                                                : "text-muted-foreground"
+                                          }
+                                        >
+                                          {toolName}
+                                        </span>
+                                      </div>
+                                    </TaskItem>
+                                  );
+                                })}
+
+                                <div className="mt-4 space-y-2">
+                                  {toolParts.map(({ part, index }) => {
+                                    const toolPart = part as ToolUIPart;
+                                    return (
+                                      <Tool
+                                        key={`${message.id}-tool-${index}`}
+                                        defaultOpen={
+                                          toolPart.state === "output-error"
+                                        }
+                                      >
+                                        <ToolHeader
+                                          type={toolPart.type}
+                                          state={toolPart.state}
+                                        />
+                                        <ToolContent>
+                                          <ToolInput input={toolPart.input} />
+                                          <ToolOutput
+                                            output={toolPart.output}
+                                            errorText={toolPart.errorText}
+                                          />
+                                        </ToolContent>
+                                      </Tool>
+                                    );
+                                  })}
+                                </div>
+                              </TaskContent>
+                            </Task>
+                          )}
+
+                          {nonToolParts.map((part, i) => {
+                            switch (part.type) {
+                              case "text":
+                                return (
+                                  <Message
+                                    key={`${message.id}-${i}`}
+                                    from={message.role}
+                                  >
+                                    <MessageContent>
+                                      <VaultMarkdown notes={notes}>
+                                        {part.text}
+                                      </VaultMarkdown>
+                                    </MessageContent>
+                                  </Message>
+                                );
+                              case "reasoning":
+                                return (
+                                  <Reasoning
+                                    key={`${message.id}-${i}`}
+                                    isStreaming={status === "streaming"}
+                                  >
+                                    <ReasoningTrigger />
+                                    <ReasoningContent>
+                                      {part.text}
+                                    </ReasoningContent>
+                                  </Reasoning>
+                                );
+                              default:
+                                return null;
+                            }
+                          })}
+                        </>
+                      );
+                    })()}
                     {message.role === "assistant" && (
                       <MessageActions className="ml-0 mt-1">
                         <MessageAction

@@ -126,11 +126,11 @@ export function WikiLinkCitation({ title, path }: WikiLinkCitationProps) {
   };
 
   if (!gitHubUrl) {
-    return <span className="font-medium text-primary">{title}</span>;
+    return <span className="mx-1 font-medium text-primary">{title}</span>;
   }
 
   return (
-    <InlineCitation>
+    <InlineCitation className="mx-1">
       <InlineCitationText className="font-medium text-primary underline decoration-primary/30 underline-offset-2 hover:decoration-primary">
         {title}
       </InlineCitationText>
