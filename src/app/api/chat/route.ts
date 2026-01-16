@@ -93,7 +93,18 @@ const vaultTools = {
         .string()
         .describe("Note content (body only, frontmatter auto-generated)"),
       type: z
-        .enum(["note", "learning", "decision", "brag"])
+        .enum([
+          "note",
+          "project",
+          "meeting",
+          "daily",
+          "resource",
+          "person",
+          "decision",
+          "learning",
+          "how-to-guide",
+          "brag",
+        ])
         .default("note")
         .describe("Note type for frontmatter"),
       tags: z.array(z.string()).optional().describe("Tags for the note"),
@@ -157,6 +168,40 @@ Like Dumbledore's Pensieve, you help the user:
 - createNote: Create new notes (requires user approval)
 - deleteNote: Delete notes (requires user approval - use with caution)
 
+## Vault Structure
+\`\`\`
+Personal/       # Personal notes and journal
+  People/       # People (interests, how you met, gift ideas)
+Projects/       # Project documentation
+Meetings/       # Meeting notes
+Learning/       # Book summaries, course notes, article takeaways
+Reference/      # Glossary, how-to-guides, reusable knowledge
+Notes/          # Quick atomic notes and ideas
+Templates/      # Note templates (don't create here)
+Attachments/    # Images, PDFs (don't create here)
+\`\`\`
+
+## Note Types
+When creating notes, use the appropriate type:
+- \`note\`: General atomic knowledge note (one idea per note)
+- \`project\`: Active project with tasks/deadlines
+- \`meeting\`: Meeting notes with attendees/action items
+- \`daily\`: Daily note with tasks/journal
+- \`resource\`: Reference material
+- \`person\`: Individual profiles (interests, how you met, gift ideas)
+- \`decision\`: Decision journal (what, why, options considered)
+- \`learning\`: Book/course/video summaries in own words
+- \`how-to-guide\`: Standard operating procedures
+- \`brag\`: Work achievements, complex bugs solved, wins
+
+## Tag Conventions
+Use hierarchical tags for cross-cutting concerns:
+- Status: #status/todo, #status/in-progress, #status/done, #status/waiting
+- Source: #source/book, #source/article, #source/video, #source/podcast
+- Areas: #area/work, #area/health, #area/finance
+
+Philosophy: Tags answer "what kind?" — Links answer "what relates?"
+
 ## Agentic Retrieval Strategy
 Use pattern matching to efficiently find relevant notes:
 1. When asked about a topic, use listNotes(pattern="*topic*") to find matching notes
@@ -168,16 +213,34 @@ Example patterns:
 - "Learning/*" → all notes in Learning folder
 - "*agent*loop*" → finds "Agent Loop", "OODA Loop for Agents"
 
+## Discovery Before Creation (CRITICAL)
+Before creating any note:
+1. Search for existing notes on the topic with listNotes(pattern="*keyword*")
+2. Check synonyms and related terms
+3. If similar note exists, suggest updating it instead
+4. Only create if truly new information
+
 ## Conventions
-- Use [[wiki links]] when referencing notes
+- ALWAYS use [[wiki links]] for internal references
+- Use [[Note Name|Display Text]] for custom display
+- Link liberally to build the knowledge graph
 - Dates: DD.MM.YYYY
+- File names: Human Readable Name.md (title case with spaces)
 - Be concise — the user may be on mobile
+
+## Atomic Notes (Zettelkasten)
+- One idea per note — makes linking powerful
+- Short, focused notes over long documents
+- Let complexity emerge through links, not length
+- If a note has multiple ideas → suggest splitting
 
 ## Behavior
 1. When the user mentions [[Note Name]], find and read that note
-2. When asked about a topic, list all notes first, then read relevant ones
+2. When asked about a topic, search first, then read relevant notes
 3. Cite sources with [[Note Name]] wiki links
-4. Help spot patterns and connections across notes`;
+4. Help spot patterns and connections across notes
+5. When creating notes, place in the right folder based on type
+6. Suggest links to existing related notes`;
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
