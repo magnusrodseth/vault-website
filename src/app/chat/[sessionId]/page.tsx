@@ -45,7 +45,7 @@ import {
   SourcesTrigger,
 } from "@/components/ai-elements/sources";
 import { ThinkingIndicator } from "@/components/ai-elements/thinking-indicator";
-import { MentionAutocomplete } from "@/components/mention-autocomplete";
+import { NoteMentionPopup } from "@/components/note-mention-popup";
 import { SessionSidebar } from "@/components/session-sidebar";
 import { Button } from "@/components/ui/button";
 import {
@@ -297,9 +297,10 @@ export default function ChatPage() {
         </Conversation>
 
         <div className="relative shrink-0 p-4">
-          <MentionAutocomplete
+          <NoteMentionPopup
             notes={notes}
             onSelect={handleMentionSelect}
+            onClose={() => {}}
             inputRef={textareaRef}
             text={input}
             cursorPosition={cursorPosition}
