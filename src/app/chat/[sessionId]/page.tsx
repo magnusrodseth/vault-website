@@ -1,7 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
+import { DefaultChatTransport, type ToolUIPart } from "ai";
 import {
   CopyIcon,
   LogOutIcon,
@@ -44,6 +44,13 @@ import {
   SourcesTrigger,
 } from "@/components/ai-elements/sources";
 import { ThinkingIndicator } from "@/components/ai-elements/thinking-indicator";
+import {
+  Tool,
+  ToolContent,
+  ToolHeader,
+  ToolInput,
+  ToolOutput,
+} from "@/components/ai-elements/tool";
 import { NoteMentionPopup } from "@/components/note-mention-popup";
 import { SessionSidebar } from "@/components/session-sidebar";
 import { Button } from "@/components/ui/button";
@@ -267,8 +274,42 @@ export default function ChatPage() {
                               <ReasoningContent>{part.text}</ReasoningContent>
                             </Reasoning>
                           );
-                        default:
+                        default: {
+                          if (part.type.startsWith("tool-")) {
+                            const toolPart = part as ToolUIPart;
+                            const isLastPart = i === message.parts.length - 1;
+                            const isLastMessage =
+                              message.id === messages.at(-1)?.id;
+                            const isRunning =
+                              status === "streaming" &&
+                              isLastPart &&
+                              isLastMessage &&
+                              toolPart.state !== "output-available" &&
+                              toolPart.state !== "output-error";
+
+                            return (
+                              <Tool
+                                key={`${message.id}-${i}`}
+                                defaultOpen={
+                                  isRunning || toolPart.state === "output-error"
+                                }
+                              >
+                                <ToolHeader
+                                  type={toolPart.type}
+                                  state={toolPart.state}
+                                />
+                                <ToolContent>
+                                  <ToolInput input={toolPart.input} />
+                                  <ToolOutput
+                                    output={toolPart.output}
+                                    errorText={toolPart.errorText}
+                                  />
+                                </ToolContent>
+                              </Tool>
+                            );
+                          }
                           return null;
+                        }
                       }
                     })}
                     {message.role === "assistant" && (
