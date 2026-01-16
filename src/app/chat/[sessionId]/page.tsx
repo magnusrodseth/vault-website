@@ -17,7 +17,6 @@ import {
   ConversationContent,
   ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
-import { Loader } from "@/components/ai-elements/loader";
 import {
   Message,
   MessageAction,
@@ -45,6 +44,7 @@ import {
   SourcesContent,
   SourcesTrigger,
 } from "@/components/ai-elements/sources";
+import { ThinkingIndicator } from "@/components/ai-elements/thinking-indicator";
 import { MentionAutocomplete } from "@/components/mention-autocomplete";
 import { SessionSidebar } from "@/components/session-sidebar";
 import { Button } from "@/components/ui/button";
@@ -291,7 +291,7 @@ export default function ChatPage() {
                 )}
               </div>
             ))}
-            {status === "submitted" && <Loader />}
+            {status === "submitted" && <ThinkingIndicator />}
           </ConversationContent>
           <ConversationScrollButton />
         </Conversation>
