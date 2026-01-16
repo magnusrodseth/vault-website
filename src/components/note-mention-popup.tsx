@@ -10,6 +10,12 @@ import {
   useRef,
   useState,
 } from "react";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 import { cn } from "@/lib/utils";
 
 interface Note {
@@ -88,6 +94,80 @@ function getCaretCoordinates(
   };
 }
 
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    setMatches(media.matches);
+
+    const listener = (e: MediaQueryListEvent) => setMatches(e.matches);
+    media.addEventListener("change", listener);
+    return () => media.removeEventListener("change", listener);
+  }, [query]);
+
+  return matches;
+}
+
+interface NoteListProps {
+  notes: Note[];
+  query: string;
+  selectedIndex: number;
+  onSelect: (note: Note) => void;
+  onHover: (index: number) => void;
+  fuse: Fuse<Note>;
+}
+
+function NoteList({
+  notes,
+  query,
+  selectedIndex,
+  onSelect,
+  onHover,
+  fuse,
+}: NoteListProps) {
+  const results = useMemo(() => {
+    if (!query) return notes.slice(0, 12);
+    return fuse
+      .search(query)
+      .slice(0, 12)
+      .map((r) => r.item);
+  }, [query, notes, fuse]);
+
+  if (results.length === 0) {
+    return (
+      <div className="px-3 py-6 text-center text-sm text-muted-foreground">
+        No notes found
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {results.map((note, index) => (
+        <button
+          key={note.path}
+          type="button"
+          onClick={() => onSelect(note)}
+          onMouseEnter={() => onHover(index)}
+          className={cn(
+            "flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm transition-colors",
+            index === selectedIndex
+              ? "bg-accent text-accent-foreground"
+              : "hover:bg-accent/50",
+          )}
+        >
+          <FileTextIcon className="size-4 shrink-0 text-muted-foreground" />
+          <span className="flex-1 truncate">{note.title}</span>
+          <span className="truncate text-xs text-muted-foreground max-w-24">
+            {note.path.split("/").slice(0, -1).join("/")}
+          </span>
+        </button>
+      ))}
+    </>
+  );
+}
+
 export function NoteMentionPopup({
   notes,
   onSelect,
@@ -103,6 +183,9 @@ export function NoteMentionPopup({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const popupRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const drawerSearchInputRef = useRef<HTMLInputElement>(null);
+
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const fuse = useMemo(
     () =>
@@ -115,10 +198,10 @@ export function NoteMentionPopup({
   );
 
   const results = useMemo(() => {
-    if (!query) return notes.slice(0, 8);
+    if (!query) return notes.slice(0, 12);
     return fuse
       .search(query)
-      .slice(0, 8)
+      .slice(0, 12)
       .map((r) => r.item);
   }, [query, notes, fuse]);
 
@@ -149,10 +232,13 @@ export function NoteMentionPopup({
   }, [text, cursorPosition, inputRef]);
 
   useEffect(() => {
-    if (open && searchInputRef.current) {
-      setTimeout(() => searchInputRef.current?.focus(), 10);
+    if (open) {
+      const inputToFocus = isDesktop
+        ? searchInputRef.current
+        : drawerSearchInputRef.current;
+      setTimeout(() => inputToFocus?.focus(), 10);
     }
-  }, [open]);
+  }, [open, isDesktop]);
 
   const handleSelect = useCallback(
     (note: Note) => {
@@ -210,7 +296,7 @@ export function NoteMentionPopup({
   }, [open, results, selectedIndex, handleSelect, handleClose]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !isDesktop) return;
 
     const handleClickOutside = (e: MouseEvent) => {
       if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
@@ -220,7 +306,7 @@ export function NoteMentionPopup({
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [open, handleClose]);
+  }, [open, handleClose, isDesktop]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setQuery(e.target.value);
@@ -236,6 +322,53 @@ export function NoteMentionPopup({
   };
 
   if (!open) return null;
+
+  if (!isDesktop) {
+    return (
+      <Drawer
+        open={open}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) handleClose();
+        }}
+      >
+        <DrawerContent className="max-h-[85vh]">
+          <DrawerHeader className="pb-2">
+            <DrawerTitle className="text-base">Search Notes</DrawerTitle>
+          </DrawerHeader>
+
+          <div className="px-4 pb-2">
+            <div className="flex items-center gap-2 rounded-md border bg-muted/50 px-3 py-2">
+              <SearchIcon className="size-4 text-muted-foreground" />
+              <input
+                ref={drawerSearchInputRef}
+                type="text"
+                value={query}
+                onChange={handleSearchChange}
+                onKeyDown={handleSearchKeyDown}
+                placeholder="Search notes..."
+                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              />
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-3 pb-4">
+            <NoteList
+              notes={notes}
+              query={query}
+              selectedIndex={selectedIndex}
+              onSelect={handleSelect}
+              onHover={setSelectedIndex}
+              fuse={fuse}
+            />
+          </div>
+
+          <div className="border-t px-4 py-3 text-center text-xs text-muted-foreground">
+            Tap a note to insert
+          </div>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
 
   return (
     <div
@@ -261,32 +394,14 @@ export function NoteMentionPopup({
       </div>
 
       <div className="max-h-64 overflow-y-auto p-1">
-        {results.length === 0 ? (
-          <div className="px-3 py-6 text-center text-sm text-muted-foreground">
-            No notes found
-          </div>
-        ) : (
-          results.map((note, index) => (
-            <button
-              key={note.path}
-              type="button"
-              onClick={() => handleSelect(note)}
-              onMouseEnter={() => setSelectedIndex(index)}
-              className={cn(
-                "flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors",
-                index === selectedIndex
-                  ? "bg-accent text-accent-foreground"
-                  : "hover:bg-accent/50",
-              )}
-            >
-              <FileTextIcon className="size-4 shrink-0 text-muted-foreground" />
-              <span className="flex-1 truncate">{note.title}</span>
-              <span className="truncate text-xs text-muted-foreground max-w-24">
-                {note.path.split("/").slice(0, -1).join("/")}
-              </span>
-            </button>
-          ))
-        )}
+        <NoteList
+          notes={notes}
+          query={query}
+          selectedIndex={selectedIndex}
+          onSelect={handleSelect}
+          onHover={setSelectedIndex}
+          fuse={fuse}
+        />
       </div>
 
       <div className="border-t px-3 py-1.5 text-xs text-muted-foreground">
