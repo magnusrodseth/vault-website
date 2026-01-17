@@ -25,6 +25,45 @@ function globToRegex(pattern: string): RegExp {
   return new RegExp(escaped, "i");
 }
 
+async function safeReadFileContent(path: string): Promise<string | null> {
+  try {
+    return await readFileContent(path);
+  } catch {
+    return null;
+  }
+}
+
+const noteTypeSchema = z.enum([
+  "note",
+  "project",
+  "meeting",
+  "daily",
+  "resource",
+  "person",
+  "decision",
+  "learning",
+  "how-to-guide",
+  "brag",
+]);
+
+function buildNoteContent(
+  title: string,
+  content: string,
+  type: string,
+  tags: string[] | undefined,
+  date: string,
+): string {
+  return `---
+type: ${type}
+created: ${date}
+tags: [${(tags || []).join(", ")}]
+---
+
+# ${title}
+
+${content}`;
+}
+
 const vaultTools = {
   listNotes: tool({
     description:
@@ -81,7 +120,7 @@ const vaultTools = {
 
   createNote: tool({
     description:
-      "Create a new note in the vault with proper Obsidian frontmatter. Commits directly to GitHub. Requires user approval.",
+      "Create a new note in the vault with proper Obsidian frontmatter. Commits directly to GitHub. Requires user approval. Shows diff if overwriting existing note.",
     inputSchema: z.object({
       path: z
         .string()
@@ -92,43 +131,124 @@ const vaultTools = {
       content: z
         .string()
         .describe("Note content (body only, frontmatter auto-generated)"),
-      type: z
-        .enum([
-          "note",
-          "project",
-          "meeting",
-          "daily",
-          "resource",
-          "person",
-          "decision",
-          "learning",
-          "how-to-guide",
-          "brag",
-        ])
+      type: noteTypeSchema
         .default("note")
         .describe("Note type for frontmatter"),
       tags: z.array(z.string()).optional().describe("Tags for the note"),
     }),
     needsApproval: true,
     execute: async ({ path, title, content, type, tags }) => {
-      const frontmatter = `---
-type: ${type}
-created: ${new Date().toLocaleDateString("en-GB").replace(/\//g, ".")}
-tags: [${(tags || []).join(", ")}]
----
-
-# ${title}
-
-${content}`;
+      const date = new Date().toLocaleDateString("en-GB").replace(/\//g, ".");
+      const newContent = buildNoteContent(title, content, type, tags, date);
+      const existingContent = await safeReadFileContent(path);
 
       const result = await createOrUpdateFile(
         path,
-        frontmatter,
-        `Create note: ${title}`,
+        newContent,
+        existingContent ? `Update note: ${title}` : `Create note: ${title}`,
       );
+
       return {
-        created: result.path,
-        message: `Created note: ${title}`,
+        path: result.path,
+        existingContent,
+        newContent,
+        isOverwrite: existingContent !== null,
+        message: existingContent
+          ? `Updated note: ${title}`
+          : `Created note: ${title}`,
+        committed: true,
+      };
+    },
+  }),
+
+  updateNote: tool({
+    description:
+      "Update an existing note with new content. Shows diff preview before committing. Use this when modifying existing notes. Requires user approval.",
+    inputSchema: z.object({
+      path: z
+        .string()
+        .describe('Full path to the existing note, e.g. "Learning/Topic.md"'),
+      content: z
+        .string()
+        .describe(
+          "New full content for the note (including frontmatter if needed)",
+        ),
+    }),
+    needsApproval: true,
+    execute: async ({ path, content }) => {
+      const existingContent = await safeReadFileContent(path);
+
+      if (existingContent === null) {
+        throw new Error(`Note not found: ${path}. Use createNote instead.`);
+      }
+
+      const title = path.split("/").pop()?.replace(/\.md$/, "") || path;
+      await createOrUpdateFile(path, content, `Update note: ${title}`);
+
+      return {
+        path,
+        existingContent,
+        newContent: content,
+        isOverwrite: true,
+        message: `Updated note: ${title}`,
+        committed: true,
+      };
+    },
+  }),
+
+  updateNotes: tool({
+    description:
+      "Update multiple existing notes at once with a single approval. Shows diff preview for each note. Use when batch-updating related notes.",
+    inputSchema: z.object({
+      notes: z
+        .array(
+          z.object({
+            path: z.string().describe("Full path to the existing note"),
+            content: z.string().describe("New full content for the note"),
+          }),
+        )
+        .describe("Array of notes to update"),
+    }),
+    needsApproval: true,
+    execute: async ({ notes }) => {
+      const results = [];
+
+      for (const note of notes) {
+        const existingContent = await safeReadFileContent(note.path);
+
+        if (existingContent === null) {
+          results.push({
+            path: note.path,
+            error: `Note not found: ${note.path}`,
+            skipped: true,
+          });
+          continue;
+        }
+
+        const title =
+          note.path.split("/").pop()?.replace(/\.md$/, "") || note.path;
+        await createOrUpdateFile(
+          note.path,
+          note.content,
+          `Update note: ${title}`,
+        );
+
+        results.push({
+          path: note.path,
+          existingContent,
+          newContent: note.content,
+          updated: true,
+        });
+      }
+
+      const updated = results.filter((r) => r.updated).length;
+      const skipped = results.filter((r) => r.skipped).length;
+
+      return {
+        updated,
+        skipped,
+        notes: results,
+        message: `Updated ${updated} notes${skipped > 0 ? `, skipped ${skipped}` : ""}`,
         committed: true,
       };
     },
@@ -156,7 +276,7 @@ ${content}`;
 
   createNotes: tool({
     description:
-      "Create multiple notes at once with a single approval. Use when generating a series of related notes (e.g., book chapters, learning series, decomposed concepts). More efficient than multiple createNote calls.",
+      "Create multiple notes at once with a single approval. Use when generating a series of related notes (e.g., book chapters, learning series, decomposed concepts). Shows diff for any overwrites.",
     inputSchema: z.object({
       notes: z
         .array(
@@ -166,20 +286,7 @@ ${content}`;
               .describe('Where to create, e.g. "Learning/Chapter 1.md"'),
             title: z.string().describe("Note title"),
             content: z.string().describe("Note content (body only)"),
-            type: z
-              .enum([
-                "note",
-                "project",
-                "meeting",
-                "daily",
-                "resource",
-                "person",
-                "decision",
-                "learning",
-                "how-to-guide",
-                "brag",
-              ])
-              .default("note"),
+            type: noteTypeSchema.default("note"),
             tags: z.array(z.string()).optional(),
           }),
         )
@@ -191,28 +298,40 @@ ${content}`;
       const date = new Date().toLocaleDateString("en-GB").replace(/\//g, ".");
 
       for (const note of notes) {
-        const frontmatter = `---
-type: ${note.type}
-created: ${date}
-tags: [${(note.tags || []).join(", ")}]
----
-
-# ${note.title}
-
-${note.content}`;
+        const newContent = buildNoteContent(
+          note.title,
+          note.content,
+          note.type,
+          note.tags,
+          date,
+        );
+        const existingContent = await safeReadFileContent(note.path);
 
         const result = await createOrUpdateFile(
           note.path,
-          frontmatter,
-          `Create note: ${note.title}`,
+          newContent,
+          existingContent
+            ? `Update note: ${note.title}`
+            : `Create note: ${note.title}`,
         );
-        results.push({ created: result.path, title: note.title });
+
+        results.push({
+          path: result.path,
+          title: note.title,
+          existingContent,
+          newContent,
+          isOverwrite: existingContent !== null,
+        });
       }
 
+      const created = results.filter((r) => !r.isOverwrite).length;
+      const updated = results.filter((r) => r.isOverwrite).length;
+
       return {
-        created: results.length,
+        created,
+        updated,
         notes: results,
-        message: `Created ${results.length} notes`,
+        message: `Created ${created} notes${updated > 0 ? `, updated ${updated}` : ""}`,
         committed: true,
       };
     },
@@ -258,8 +377,10 @@ Like Dumbledore's Pensieve, you help the user:
 ## Your Tools
 - listNotes: Discover notes. Supports glob patterns like "*agent*", "Learning/*"
 - readNote: Read a specific note's full content
-- createNote: Create a single note (requires user approval)
+- createNote: Create a single note (requires user approval, shows diff if overwriting)
 - createNotes: Create multiple notes at once with ONE approval (use for series/batches)
+- updateNote: Update an existing note's content (requires user approval, shows diff)
+- updateNotes: Update multiple notes at once with ONE approval (shows diff for each)
 - deleteNote: Delete a single note (requires user approval)
 - deleteNotes: Delete multiple notes at once with ONE approval (use for batch cleanup)
 
@@ -312,8 +433,13 @@ Example patterns:
 Before creating any note:
 1. Search for existing notes on the topic with listNotes(pattern="*keyword*")
 2. Check synonyms and related terms
-3. If similar note exists, suggest updating it instead
+3. If similar note exists, use updateNote to modify it instead
 4. Only create if truly new information
+
+## Update vs Create
+- Use updateNote/updateNotes when modifying existing notes
+- Use createNote/createNotes for new notes (will warn if overwriting)
+- User will see a diff preview before approving any changes
 
 ## Conventions
 - ALWAYS use [[wiki links]] for internal references
@@ -335,7 +461,8 @@ Before creating any note:
 3. Cite sources with [[Note Name]] wiki links
 4. Help spot patterns and connections across notes
 5. When creating notes, place in the right folder based on type
-6. Suggest links to existing related notes`;
+6. Suggest links to existing related notes
+7. When updating notes, show clear diff of what changed`;
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();

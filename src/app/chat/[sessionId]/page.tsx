@@ -76,6 +76,10 @@ import {
   ToolInput,
   ToolOutput,
 } from "@/components/ai-elements/tool";
+import {
+  BatchDiffApprovalPreview,
+  DiffApprovalPreview,
+} from "@/components/diff-approval-preview";
 import { NoteMentionPopup } from "@/components/note-mention-popup";
 import { SessionSidebar } from "@/components/session-sidebar";
 import { Button } from "@/components/ui/button";
@@ -408,10 +412,12 @@ export default function ChatPage() {
                                     const needsApprovalTools = [
                                       "createNote",
                                       "createNotes",
+                                      "updateNote",
+                                      "updateNotes",
                                       "deleteNote",
                                       "deleteNotes",
                                     ];
-                                    const isDestructive =
+                                    const requiresApproval =
                                       needsApprovalTools.includes(toolName);
 
                                     return (
@@ -436,331 +442,312 @@ export default function ChatPage() {
                                           </ToolContent>
                                         </Tool>
 
-                                        {isDestructive && toolPart.approval && (
-                                          <Confirmation
-                                            approval={toolPart.approval}
-                                            state={toolPart.state}
-                                            className="mt-2"
-                                          >
-                                            <ConfirmationTitle>
-                                              <ConfirmationRequest>
-                                                {toolName === "deleteNote" ? (
-                                                  <>
-                                                    Delete{" "}
-                                                    <code className="inline rounded bg-muted px-1.5 py-0.5 text-sm">
-                                                      {(
+                                        {requiresApproval &&
+                                          toolPart.approval && (
+                                            <Confirmation
+                                              approval={toolPart.approval}
+                                              state={toolPart.state}
+                                              className="mt-2"
+                                            >
+                                              <ConfirmationTitle>
+                                                <ConfirmationRequest>
+                                                  {toolName === "deleteNote" ? (
+                                                    <>
+                                                      Delete{" "}
+                                                      <code className="inline rounded bg-muted px-1.5 py-0.5 text-sm">
+                                                        {(
+                                                          toolPart.input as {
+                                                            path?: string;
+                                                          }
+                                                        )?.path || "note"}
+                                                      </code>
+                                                      ? This cannot be undone.
+                                                    </>
+                                                  ) : toolName ===
+                                                    "deleteNotes" ? (
+                                                    (() => {
+                                                      const input =
+                                                        toolPart.input as {
+                                                          paths?: string[];
+                                                        };
+                                                      const pathsArray =
+                                                        input?.paths || [];
+                                                      return (
+                                                        <div className="space-y-2">
+                                                          <div>
+                                                            Delete{" "}
+                                                            <strong className="text-destructive">
+                                                              {
+                                                                pathsArray.length
+                                                              }
+                                                            </strong>{" "}
+                                                            notes? This cannot
+                                                            be undone.
+                                                          </div>
+                                                          <Collapsible>
+                                                            <CollapsibleTrigger className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors group">
+                                                              <ChevronDownIcon className="size-4 transition-transform group-data-[state=open]:rotate-180" />
+                                                              View notes to
+                                                              delete
+                                                            </CollapsibleTrigger>
+                                                            <CollapsibleContent>
+                                                              <div className="mt-2 space-y-1 max-h-64 overflow-y-auto">
+                                                                {pathsArray.map(
+                                                                  (path) => (
+                                                                    <div
+                                                                      key={path}
+                                                                      className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm"
+                                                                    >
+                                                                      <code className="text-xs">
+                                                                        {path}
+                                                                      </code>
+                                                                    </div>
+                                                                  ),
+                                                                )}
+                                                              </div>
+                                                            </CollapsibleContent>
+                                                          </Collapsible>
+                                                        </div>
+                                                      );
+                                                    })()
+                                                  ) : toolName ===
+                                                    "updateNote" ? (
+                                                    (() => {
+                                                      const input =
                                                         toolPart.input as {
                                                           path?: string;
-                                                        }
-                                                      )?.path || "note"}
-                                                    </code>
-                                                    ? This cannot be undone.
-                                                  </>
-                                                ) : toolName ===
-                                                  "deleteNotes" ? (
-                                                  (() => {
-                                                    const input =
-                                                      toolPart.input as {
-                                                        paths?: string[];
-                                                      };
-                                                    const pathsArray =
-                                                      input?.paths || [];
-                                                    return (
-                                                      <div className="space-y-2">
-                                                        <div>
-                                                          Delete{" "}
-                                                          <strong className="text-destructive">
-                                                            {pathsArray.length}
-                                                          </strong>{" "}
-                                                          notes? This cannot be
-                                                          undone.
+                                                          content?: string;
+                                                        };
+                                                      return (
+                                                        <div className="space-y-2">
+                                                          <div>
+                                                            Update{" "}
+                                                            <code className="inline rounded bg-muted px-1.5 py-0.5 text-sm">
+                                                              {input?.path ||
+                                                                "note"}
+                                                            </code>
+                                                            ?
+                                                          </div>
+                                                          <DiffApprovalPreview
+                                                            path={
+                                                              input?.path || ""
+                                                            }
+                                                            newContent={
+                                                              input?.content ||
+                                                              ""
+                                                            }
+                                                          />
                                                         </div>
-                                                        <Collapsible>
-                                                          <CollapsibleTrigger className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors group">
-                                                            <ChevronDownIcon className="size-4 transition-transform group-data-[state=open]:rotate-180" />
-                                                            View notes to delete
-                                                          </CollapsibleTrigger>
-                                                          <CollapsibleContent>
-                                                            <div className="mt-2 space-y-1 max-h-64 overflow-y-auto">
-                                                              {pathsArray.map(
-                                                                (
-                                                                  path,
-                                                                  pathIndex,
-                                                                ) => (
-                                                                  <div
-                                                                    key={
-                                                                      path ||
-                                                                      `path-${pathIndex}`
-                                                                    }
-                                                                    className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm"
-                                                                  >
-                                                                    <span className="text-muted-foreground text-xs">
-                                                                      {pathIndex +
-                                                                        1}
-                                                                      .
-                                                                    </span>
-                                                                    <code className="text-xs">
-                                                                      {path}
-                                                                    </code>
-                                                                  </div>
-                                                                ),
-                                                              )}
-                                                            </div>
-                                                          </CollapsibleContent>
-                                                        </Collapsible>
-                                                      </div>
-                                                    );
-                                                  })()
-                                                ) : toolName ===
-                                                  "createNotes" ? (
-                                                  (() => {
-                                                    const input =
-                                                      toolPart.input as {
-                                                        notes?: Array<{
+                                                      );
+                                                    })()
+                                                  ) : toolName ===
+                                                    "updateNotes" ? (
+                                                    (() => {
+                                                      const input =
+                                                        toolPart.input as {
+                                                          notes?: Array<{
+                                                            path?: string;
+                                                            content?: string;
+                                                          }>;
+                                                        };
+                                                      const notesArray =
+                                                        input?.notes || [];
+                                                      return (
+                                                        <div className="space-y-2">
+                                                          <div>
+                                                            Update{" "}
+                                                            <strong>
+                                                              {
+                                                                notesArray.length
+                                                              }
+                                                            </strong>{" "}
+                                                            notes?
+                                                          </div>
+                                                          <BatchDiffApprovalPreview
+                                                            notes={notesArray.map(
+                                                              (n) => ({
+                                                                path:
+                                                                  n.path || "",
+                                                                content:
+                                                                  n.content ||
+                                                                  "",
+                                                              }),
+                                                            )}
+                                                          />
+                                                        </div>
+                                                      );
+                                                    })()
+                                                  ) : toolName ===
+                                                    "createNotes" ? (
+                                                    (() => {
+                                                      const input =
+                                                        toolPart.input as {
+                                                          notes?: Array<{
+                                                            path?: string;
+                                                            title?: string;
+                                                            content?: string;
+                                                            type?: string;
+                                                            tags?: string[];
+                                                          }>;
+                                                        };
+                                                      const notesArray =
+                                                        input?.notes || [];
+                                                      const date = new Date()
+                                                        .toLocaleDateString(
+                                                          "en-GB",
+                                                        )
+                                                        .replace(/\//g, ".");
+                                                      const notesWithContent =
+                                                        notesArray.map(
+                                                          (note) => ({
+                                                            path:
+                                                              note.path || "",
+                                                            content: `---\ntype: ${note.type || "note"}\ncreated: ${date}\ntags: [${(note.tags || []).join(", ")}]\n---\n\n# ${note.title || "Untitled"}\n\n${note.content || ""}`,
+                                                          }),
+                                                        );
+                                                      return (
+                                                        <div className="space-y-2">
+                                                          <div>
+                                                            Create{" "}
+                                                            <strong>
+                                                              {
+                                                                notesArray.length
+                                                              }
+                                                            </strong>{" "}
+                                                            notes?
+                                                          </div>
+                                                          <BatchDiffApprovalPreview
+                                                            notes={
+                                                              notesWithContent
+                                                            }
+                                                          />
+                                                        </div>
+                                                      );
+                                                    })()
+                                                  ) : (
+                                                    (() => {
+                                                      const input =
+                                                        toolPart.input as {
                                                           path?: string;
                                                           title?: string;
                                                           content?: string;
                                                           type?: string;
                                                           tags?: string[];
-                                                        }>;
-                                                      };
-                                                    const notesArray =
-                                                      input?.notes || [];
-                                                    return (
-                                                      <div className="space-y-2">
-                                                        <div>
-                                                          Create{" "}
-                                                          <strong>
-                                                            {notesArray.length}
-                                                          </strong>{" "}
-                                                          notes?
+                                                        };
+                                                      const date = new Date()
+                                                        .toLocaleDateString(
+                                                          "en-GB",
+                                                        )
+                                                        .replace(/\//g, ".");
+                                                      const fullContent = `---\ntype: ${input?.type || "note"}\ncreated: ${date}\ntags: [${(input?.tags || []).join(", ")}]\n---\n\n# ${input?.title || "Untitled"}\n\n${input?.content || ""}`;
+                                                      return (
+                                                        <div className="space-y-2">
+                                                          <div>
+                                                            Create note at{" "}
+                                                            <code className="inline rounded bg-muted px-1.5 py-0.5 text-sm">
+                                                              {input?.path ||
+                                                                "path"}
+                                                            </code>
+                                                            ?
+                                                          </div>
+                                                          <DiffApprovalPreview
+                                                            path={
+                                                              input?.path || ""
+                                                            }
+                                                            newContent={
+                                                              fullContent
+                                                            }
+                                                          />
                                                         </div>
-                                                        <Collapsible>
-                                                          <CollapsibleTrigger className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors group">
-                                                            <ChevronDownIcon className="size-4 transition-transform group-data-[state=open]:rotate-180" />
-                                                            Preview all notes
-                                                          </CollapsibleTrigger>
-                                                          <CollapsibleContent>
-                                                            <div className="mt-2 space-y-3 max-h-96 overflow-y-auto">
-                                                              {notesArray.map(
-                                                                (
-                                                                  note,
-                                                                  noteIndex,
-                                                                ) => (
-                                                                  <div
-                                                                    key={
-                                                                      note?.path ||
-                                                                      `note-${noteIndex}`
-                                                                    }
-                                                                    className="rounded-md border bg-muted/50 p-3 text-sm space-y-2"
-                                                                  >
-                                                                    <div className="flex gap-2 items-center">
-                                                                      <span className="text-muted-foreground text-xs">
-                                                                        {noteIndex +
-                                                                          1}
-                                                                        .
-                                                                      </span>
-                                                                      <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
-                                                                        {note?.path ||
-                                                                          "path"}
-                                                                      </code>
-                                                                    </div>
-                                                                    <div className="flex gap-2">
-                                                                      <span className="text-muted-foreground">
-                                                                        Title:
-                                                                      </span>
-                                                                      <span className="font-medium">
-                                                                        {note?.title ||
-                                                                          "Untitled"}
-                                                                      </span>
-                                                                    </div>
-                                                                    <div className="flex gap-2 flex-wrap">
-                                                                      <span className="text-muted-foreground">
-                                                                        Type:
-                                                                      </span>
-                                                                      <span>
-                                                                        {note?.type ||
-                                                                          "note"}
-                                                                      </span>
-                                                                      {note?.tags &&
-                                                                        note
-                                                                          .tags
-                                                                          .length >
-                                                                          0 && (
-                                                                          <>
-                                                                            <span className="text-muted-foreground ml-2">
-                                                                              Tags:
-                                                                            </span>
-                                                                            <span>
-                                                                              {note.tags.join(
-                                                                                ", ",
-                                                                              )}
-                                                                            </span>
-                                                                          </>
-                                                                        )}
-                                                                    </div>
-                                                                    <Collapsible>
-                                                                      <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors group">
-                                                                        <ChevronDownIcon className="size-3 transition-transform group-data-[state=open]:rotate-180" />
-                                                                        Content
-                                                                      </CollapsibleTrigger>
-                                                                      <CollapsibleContent>
-                                                                        <div className="mt-1 pt-1 border-t whitespace-pre-wrap text-foreground max-h-32 overflow-y-auto text-xs">
-                                                                          {note?.content ||
-                                                                            "No content"}
-                                                                        </div>
-                                                                      </CollapsibleContent>
-                                                                    </Collapsible>
-                                                                  </div>
-                                                                ),
-                                                              )}
-                                                            </div>
-                                                          </CollapsibleContent>
-                                                        </Collapsible>
-                                                      </div>
-                                                    );
-                                                  })()
-                                                ) : (
-                                                  (() => {
-                                                    const input =
-                                                      toolPart.input as {
-                                                        path?: string;
-                                                        title?: string;
-                                                        content?: string;
-                                                        type?: string;
-                                                        tags?: string[];
-                                                      };
-                                                    return (
-                                                      <div className="space-y-2">
-                                                        <div>
-                                                          Create note at{" "}
-                                                          <code className="inline rounded bg-muted px-1.5 py-0.5 text-sm">
-                                                            {input?.path ||
-                                                              "path"}
-                                                          </code>
-                                                          ?
-                                                        </div>
-                                                        <Collapsible>
-                                                          <CollapsibleTrigger className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors group">
-                                                            <ChevronDownIcon className="size-4 transition-transform group-data-[state=open]:rotate-180" />
-                                                            Preview content
-                                                          </CollapsibleTrigger>
-                                                          <CollapsibleContent>
-                                                            <div className="mt-2 rounded-md border bg-muted/50 p-3 text-sm space-y-2">
-                                                              <div className="flex gap-2">
-                                                                <span className="text-muted-foreground">
-                                                                  Title:
-                                                                </span>
-                                                                <span className="font-medium">
-                                                                  {input?.title ||
-                                                                    "Untitled"}
-                                                                </span>
-                                                              </div>
-                                                              <div className="flex gap-2">
-                                                                <span className="text-muted-foreground">
-                                                                  Type:
-                                                                </span>
-                                                                <span>
-                                                                  {input?.type ||
-                                                                    "note"}
-                                                                </span>
-                                                              </div>
-                                                              {input?.tags &&
-                                                                input.tags
-                                                                  .length >
-                                                                  0 && (
-                                                                  <div className="flex gap-2">
-                                                                    <span className="text-muted-foreground">
-                                                                      Tags:
-                                                                    </span>
-                                                                    <span>
-                                                                      {input.tags.join(
-                                                                        ", ",
-                                                                      )}
-                                                                    </span>
-                                                                  </div>
-                                                                )}
-                                                              <div className="pt-2 border-t">
-                                                                <div className="text-muted-foreground mb-1">
-                                                                  Content:
-                                                                </div>
-                                                                <div className="whitespace-pre-wrap text-foreground max-h-48 overflow-y-auto">
-                                                                  {input?.content ||
-                                                                    "No content"}
-                                                                </div>
-                                                              </div>
-                                                            </div>
-                                                          </CollapsibleContent>
-                                                        </Collapsible>
-                                                      </div>
-                                                    );
-                                                  })()
-                                                )}
-                                              </ConfirmationRequest>
-                                              <ConfirmationAccepted>
-                                                <CheckIcon className="size-4 text-green-600 dark:text-green-400" />
-                                                <span>
-                                                  {toolName === "deleteNote"
-                                                    ? "You approved the deletion"
-                                                    : toolName === "deleteNotes"
-                                                      ? "You approved the batch deletion"
+                                                      );
+                                                    })()
+                                                  )}
+                                                </ConfirmationRequest>
+                                                <ConfirmationAccepted>
+                                                  <CheckIcon className="size-4 text-green-600 dark:text-green-400" />
+                                                  <span>
+                                                    {toolName === "deleteNote"
+                                                      ? "You approved the deletion"
                                                       : toolName ===
-                                                          "createNotes"
-                                                        ? "You approved the batch creation"
-                                                        : "You approved the creation"}
-                                                </span>
-                                              </ConfirmationAccepted>
-                                              <ConfirmationRejected>
-                                                <XIcon className="size-4 text-destructive" />
-                                                <span>
-                                                  {toolName === "deleteNote"
-                                                    ? "You rejected the deletion"
-                                                    : toolName === "deleteNotes"
-                                                      ? "You rejected the batch deletion"
+                                                          "deleteNotes"
+                                                        ? "You approved the batch deletion"
+                                                        : toolName ===
+                                                            "updateNote"
+                                                          ? "You approved the update"
+                                                          : toolName ===
+                                                              "updateNotes"
+                                                            ? "You approved the batch update"
+                                                            : toolName ===
+                                                                "createNotes"
+                                                              ? "You approved the batch creation"
+                                                              : "You approved the creation"}
+                                                  </span>
+                                                </ConfirmationAccepted>
+                                                <ConfirmationRejected>
+                                                  <XIcon className="size-4 text-destructive" />
+                                                  <span>
+                                                    {toolName === "deleteNote"
+                                                      ? "You rejected the deletion"
                                                       : toolName ===
-                                                          "createNotes"
-                                                        ? "You rejected the batch creation"
-                                                        : "You rejected the creation"}
-                                                </span>
-                                              </ConfirmationRejected>
-                                            </ConfirmationTitle>
-                                            <ConfirmationActions>
-                                              <ConfirmationAction
-                                                onClick={() =>
-                                                  addToolApprovalResponse({
-                                                    id: toolPart.approval!.id,
-                                                    approved: false,
-                                                  })
-                                                }
-                                                variant="outline"
-                                              >
-                                                Reject
-                                              </ConfirmationAction>
-                                              <ConfirmationAction
-                                                onClick={() =>
-                                                  addToolApprovalResponse({
-                                                    id: toolPart.approval!.id,
-                                                    approved: true,
-                                                  })
-                                                }
-                                                variant={
-                                                  toolName === "deleteNote" ||
-                                                  toolName === "deleteNotes"
-                                                    ? "destructive"
-                                                    : "default"
-                                                }
-                                              >
-                                                {toolName === "deleteNote"
-                                                  ? "Delete"
-                                                  : toolName === "deleteNotes"
-                                                    ? "Delete All"
-                                                    : toolName === "createNotes"
-                                                      ? "Create All"
-                                                      : "Create"}
-                                              </ConfirmationAction>
-                                            </ConfirmationActions>
-                                          </Confirmation>
-                                        )}
+                                                          "deleteNotes"
+                                                        ? "You rejected the batch deletion"
+                                                        : toolName ===
+                                                            "updateNote"
+                                                          ? "You rejected the update"
+                                                          : toolName ===
+                                                              "updateNotes"
+                                                            ? "You rejected the batch update"
+                                                            : toolName ===
+                                                                "createNotes"
+                                                              ? "You rejected the batch creation"
+                                                              : "You rejected the creation"}
+                                                  </span>
+                                                </ConfirmationRejected>
+                                              </ConfirmationTitle>
+                                              <ConfirmationActions>
+                                                <ConfirmationAction
+                                                  onClick={() =>
+                                                    addToolApprovalResponse({
+                                                      id: toolPart.approval!.id,
+                                                      approved: false,
+                                                    })
+                                                  }
+                                                  variant="outline"
+                                                >
+                                                  Reject
+                                                </ConfirmationAction>
+                                                <ConfirmationAction
+                                                  onClick={() =>
+                                                    addToolApprovalResponse({
+                                                      id: toolPart.approval!.id,
+                                                      approved: true,
+                                                    })
+                                                  }
+                                                  variant={
+                                                    toolName === "deleteNote" ||
+                                                    toolName === "deleteNotes"
+                                                      ? "destructive"
+                                                      : "default"
+                                                  }
+                                                >
+                                                  {toolName === "deleteNote"
+                                                    ? "Delete"
+                                                    : toolName === "deleteNotes"
+                                                      ? "Delete All"
+                                                      : toolName ===
+                                                          "updateNote"
+                                                        ? "Update"
+                                                        : toolName ===
+                                                            "updateNotes"
+                                                          ? "Update All"
+                                                          : toolName ===
+                                                              "createNotes"
+                                                            ? "Create All"
+                                                            : "Create"}
+                                                </ConfirmationAction>
+                                              </ConfirmationActions>
+                                            </Confirmation>
+                                          )}
                                       </div>
                                     );
                                   })}
