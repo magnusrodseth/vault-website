@@ -17,11 +17,6 @@ export const metadata: Metadata = {
   title: "Pensieve",
   description:
     "Your AI-powered second brain. Examine your thoughts at leisure.",
-  manifest: "/manifest.json",
-  icons: {
-    icon: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
-  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -29,6 +24,9 @@ export const metadata: Metadata = {
   },
   formatDetection: {
     telephone: false,
+  },
+  other: {
+    "apple-mobile-web-app-title": "Pensieve",
   },
 };
 
