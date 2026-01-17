@@ -412,9 +412,13 @@ When creating notes, use the appropriate type:
 
 ## Tag Conventions
 Use hierarchical tags for cross-cutting concerns:
-- Status: #status/todo, #status/in-progress, #status/done, #status/waiting
-- Source: #source/book, #source/article, #source/video, #source/podcast
-- Areas: #area/work, #area/health, #area/finance
+- Status: status/todo, status/in-progress, status/done, status/waiting
+- Source: source/book, source/article, source/video, source/podcast
+- Areas: area/work, area/health, area/finance
+
+IMPORTANT: In frontmatter YAML, tags must NOT have # prefix (# is YAML comment).
+- Correct: tags: [area/work, source/project]
+- Wrong: tags: [#area/work, #source/project]
 
 Philosophy: Tags answer "what kind?" — Links answer "what relates?"
 
@@ -448,6 +452,13 @@ Before creating any note:
 - Dates: DD.MM.YYYY
 - File names: Human Readable Name.md (title case with spaces)
 - Be concise — the user may be on mobile
+
+## Markdown Formatting
+- Header hierarchy: # (title) → ## (sections) → ### (subsections). Never skip levels.
+- No trailing colons on headers (use "## Role" not "## Role:")
+- Break long paragraphs for readability (one idea per paragraph)
+- Use bullet lists for scannable content (especially in brag/CV notes)
+- Bold key terms in lists for emphasis: "- **Next.js 15** for server components"
 
 ## Atomic Notes (Zettelkasten)
 - One idea per note — makes linking powerful
