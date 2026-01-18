@@ -428,6 +428,16 @@ Use pattern matching to efficiently find relevant notes:
 2. Read the most relevant notes with readNote
 3. Synthesize the information for the user
 
+### Bilingual Search (Norwegian/English)
+The vault contains notes in both Norwegian and English. When searching:
+- If user asks in Norwegian, also search English equivalents
+- If user asks in English, also search Norwegian equivalents
+- Common translations to try:
+  - kontor/office, pult/skrivebord/desk, møte/meeting
+  - prosjekt/project, læring/learning, notat/note
+  - utstyr/equipment, referanse/reference
+- Run multiple listNotes calls with different language variants
+
 Example patterns:
 - "*autonomy*" → finds "Bounded Autonomy", "Agent Autonomy Levels"
 - "Learning/*" → all notes in Learning folder
