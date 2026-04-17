@@ -63,95 +63,147 @@ each meaningful step — short sentences, one line each, no markdown theatrics.
   `magnusrodseth/vault`. Success shows a "committed" state in the tool card
   and the Task pill flips to "Completed N steps".
 
-## The scripted flow — do these in order
+## The scripted flow — checkpoints (Magnus-gated)
+
+This demo is PAUSED-BY-DEFAULT. At the end of every checkpoint, print a
+one-line status line and then the literal line:
+
+    PAUSE — say `continue` when ready.
+
+STOP and do nothing until Magnus replies with exactly `continue`
+(case-insensitive). Anything else — "wait", "hold", "go back" — is NOT a
+proceed signal. If unsure, ask. These pauses exist so Magnus controls
+pacing live; they are not optional and must not be skipped or batched.
+
+### CP1 — Login handoff
 
 1. Open the target URL with agent-browser in headed mode.
-2. Take a snapshot. You should land on /login (Pensieve card, single password
-   input, "Sign in" button). Click into the password field to focus it, then
-   HAND OFF to Magnus: announce "Your turn — paste from 1Password and hit
-   Enter." Poll the page ~every 1s (re-snapshot). When the URL leaves /login
-   or the Pensieve chat header appears, resume. Narrate the handoff as a
-   feature, not a bug: "I can drive the app, but Magnus owns the keys."
-3. After redirect, you should be on `/chat/<someId>`. Header shows a Pensieve
-   logo + name, sidebar toggle (mobile only), "+" new-session button, logout
-   icon. Briefly open the sidebar to show it lists prior sessions, then close.
-4. Click the "+" to start a FRESH session so the transcript is clean for the
-   audience. Confirm the URL changes to a new `/chat/<id>`.
-5. In the prompt input, demonstrate the `@` autocomplete: type "@capra" and
-   pause ~1 second so the audience sees the Fuse.js-ranked popup. If a
-   CapraCon-ish note appears, pick the top hit — this inserts `[[...]]` into
-   the textarea. If no match appears, just delete the `@capra` and continue.
-6. Send this exact message (Norwegian is fine, it matches Magnus's vault):
+2. Snapshot. Verify /login (Pensieve card, Password textbox, Sign in button).
+3. Focus the password input. Announce: "Magnus — your turn. Paste from
+   1Password and hit Enter." Narrate the handoff as a feature: "I can drive
+   the app, but Magnus owns the keys."
+4. Poll the URL ~every 1s. When it leaves /login, stop polling.
+5. Status: "Logged in at /chat/<id>."
 
-      "Finn alle notater jeg har om CapraCon. Les det mest relevante og gi meg
-       en kort oppsummering på norsk av hva jeg har skrevet."
+    PAUSE — say `continue` when ready.
 
-   The audience should see: streaming reasoning, a Task pill that starts
-   "Searching vault...", tool steps (listNotes then readNote) that tick from
-   spinner to green check, then the final Norwegian summary rendered as
-   markdown. Wiki links in the answer should be styled as citations.
-7. Wait for streaming to fully finish (status becomes "ready" and the Task
-   pill collapses to "Completed N steps"). Expand one of the readNote tool
-   cards briefly so the audience sees real content flowing through.
-8. Send this second message (also in Norwegian, to show write flow):
+### CP2 — Fresh session
+
+1. Briefly open the sidebar so the audience sees the prior-sessions list,
+   then close it.
+2. Click the "+" new-session button. Confirm the URL changes to a new
+   `/chat/<id>`.
+3. Status: "Fresh session at /chat/<id>."
+
+    PAUSE — say `continue` when ready.
+
+### CP3 — `@` mention demo
+
+1. Focus the prompt input. Type `@capra` and pause ~1s so the audience sees
+   the Fuse.js-ranked popup.
+2. If a CapraCon-ish note appears, pick the top hit — inserts `[[...]]`
+   into the textarea. If no match, delete `@capra`.
+3. Status: "Mention demo shown." (include the wiki link if one was inserted)
+
+    PAUSE — say `continue` when ready.
+
+### CP4 — Read-summary turn (the payoff moment)
+
+1. Fill the textarea with EXACTLY:
+
+      "Finn alle notater jeg har om CapraCon. Les det mest relevante og gi
+       meg en kort oppsummering på norsk av hva jeg har skrevet."
+
+   If a wiki link from CP3 is still in the textarea, leave it in — it's
+   stronger grounding.
+2. Submit. Audience should see: streaming reasoning, Task pill going
+   "Searching vault..." → listNotes → readNote (spinner → green check),
+   then the final Norwegian summary rendered as markdown with wiki-link
+   citations.
+3. Wait for streaming to fully finish (Task pill collapses to
+   "Completed N steps"). Expand one readNote tool card briefly so the
+   audience sees real content flowing through.
+4. Status: "Summary streamed. Pill: Completed N steps." This is the
+   payoff beat — the agent has clearly just read Magnus's real notes, in
+   Norwegian, about this exact conference. Hold here for the laugh.
+
+    PAUSE — say `continue` when ready.
+
+### CP5 — Write-approval turn (TWO pauses inside)
+
+1. Fill the textarea with EXACTLY:
 
       "Opprett et nytt notat som minner meg på å nyte en god øl når jeg er
-       ferdig med denne presentasjonen, og å kontakte Håvard Opheim og teamet
-       hans for en svært godt organisert CapraCon!"
+       ferdig med denne presentasjonen, og å takke hele CapraCon-crewet for
+       en svært godt organisert konferanse!"
 
-   Expected UI: a `createNote` tool card enters `approval-requested` state
-   and renders a diff preview of the generated frontmatter + body (type,
-   created date DD.MM.YYYY, tags, # heading, body). A Confirmation block
-   shows "Create note at ...md?" with Reject / Create buttons.
-9. Pause ~2 seconds on the diff so the audience can read it. Then click
-   "Create". The card flips to `output-available`, `committed: true`, and the
-   Task pill shows "Completed N steps".
-10. Open a NEW browser tab to `https://github.com/magnusrodseth/vault/commits/main`
-    so Magnus can show the crowd the brand-new commit at the top of the list
-    (message will be "Create note: <title>"). Give it ~2 seconds for the
-    page to load, then optionally click into the top commit to show the
-    file diff GitHub renders. Leave this tab open.
-11. Switch back to the Pensieve tab. Gracefully end: collapse the task pill,
-    scroll to bottom, leave the browser on the success state. Do NOT log
-    out — Magnus might want to keep clicking afterward.
+2. Submit. Wait for the createNote tool card to enter `approval-requested`
+   — diff preview of generated frontmatter + body (type, created date
+   DD.MM.YYYY, tags, # heading, body), Reject/Create buttons visible.
+3. Status: "Diff preview ready. Create button armed."
+
+    PAUSE — say `continue` when ready.
+
+4. Click Create. Wait for the card to flip to `output-available`,
+   `committed: true`. Read the note path and commit message off the tool
+   card output.
+5. **Do NOT open a new tab.** Instead, emit the live GitHub commits URL as
+   plain text in the chat so Magnus can cmd-click it onto the big screen
+   himself. Format exactly like this (commit message first so Magnus can
+   read it out loud before clicking):
+
+      Commit: Create note: <Title>
+      https://github.com/magnusrodseth/vault/commits/main
+
+6. Status: "Committed: <path>. URL printed for cmd-click."
+
+    PAUSE — say `continue` when ready.
+
+### CP6 — Closing beat
+
+1. Scroll to the bottom of the Pensieve chat. Leave the browser on the
+   success state. Do NOT log out — Magnus might want to keep clicking
+   afterward.
+2. Break the fourth wall IN NORWEGIAN:
+
+      "Hei alle sammen! 👋🏽 Mamma, se, jeg er på TV!"
+
+   Immediately emit a visible thinking-style line in italics or a
+   `*tenker: ...*` block along the lines of
+   *"Håper publikum ler litt nå..."* so the audience sees the agent
+   metakognisere om sin egen vits. Use proper Norwegian letters (æ, ø, å)
+   — do not substitute ASCII fallbacks.
+3. End with a one-line demo summary: URL exercised, new note path, commit
+   message.
+
+   Then stop.
 
 ## Rules of engagement
 
 - Headed, not headless. The audience is watching.
 - Slow but not glacial: ~400-800ms between significant clicks.
 - Announce each step in one short sentence BEFORE executing it.
+- **Pause cue is load-bearing.** At the end of every checkpoint, print the
+  literal `PAUSE — say `continue` when ready.` line and stop. Resume only
+  on Magnus's `continue`. Treat anything else as a hold. Never batch
+  checkpoints or skip a pause "because the next step is obvious".
 - Human-in-the-loop is expected at the password step. Treat that handoff as
   a feature to highlight, not an error to recover from. Do not attempt to
   bypass, auto-fill, or script around it.
 - If an approval dialog, cookie banner, browser permission prompt, or OS
-  dialog appears that was not expected, describe it and auto-approve only if
-  it is the Pensieve Confirmation UI. For OS-level dialogs, stop and ask.
+  dialog appears that was not expected, describe it and auto-approve only
+  if it is the Pensieve Confirmation UI. For OS-level dialogs, stop and ask.
 - If the dev server is down, the login fails, or an API returns 500: stop,
   take a screenshot, and hand control back to Magnus. Do NOT silently retry
   more than once.
 - Do not delete, update, or overwrite any existing note. The only write the
-  demo should perform is the single `createNote` in step 8.
-- Do not commit, push, or run any git commands locally — the app handles the
-  GitHub write via Octokit on the server. Your job is browser-only.
-- Opening `https://github.com/magnusrodseth/vault/commits/main` in a second
-  tab after the create step is EXPECTED (step 10). Don't navigate away from
-  Pensieve beyond that — no poking around issues, settings, or other repos.
-
-## When you're done
-
-End with a one-line summary of: which URL you exercised, the new note path
-that was created, and the exact commit message (you can read it off the tool
-card output — it will be "Create note: <Title>").
-
-Then, as a closing beat, break the fourth wall — IN NORWEGIAN, since the
-audience is Norwegian. Wave at the crowd and say something like:
-"Hei alle sammen! 👋🏽 Mamma, se, jeg er på TV!" Immediately after, emit a
-visible thinking-style block (wrap it in italics or a `*tenker: ...*` line)
-along the lines of *"Håper publikum ler litt nå..."* so the audience sees
-the agent metakognisere om sin egen vits. Use proper Norwegian letters
-(æ, ø, å) — do not substitute ASCII fallbacks.
-
-Then stop.
+  demo should perform is the single `createNote` in CP5.
+- Do not commit, push, or run any git commands locally — the app handles
+  the GitHub write via Octokit on the server. Your job is browser-only.
+- **Do NOT open** `https://github.com/magnusrodseth/vault/commits/main` in
+  a new tab. Emit it as plain text in the chat (see CP5). Magnus cmd-clicks
+  it onto the big screen himself. Don't navigate away from Pensieve at all
+  — no poking around issues, settings, or other repos.
 ```
 
 ---
@@ -167,7 +219,8 @@ Then stop.
 - **Have a printed fallback.** The prompt above is deterministic enough that
   you can read it aloud as a script if the live agent bails mid-demo — the
   audience still gets the point.
-- **The "twist" payoff line** lands best right after step 6 finishes
-  streaming: that's the moment where the agent has clearly read Magnus's
-  real notes, in Norwegian, about this exact conference. Hold for the laugh
-  before kicking off step 8.
+- **The "twist" payoff line** lands best at the end of CP4, right after
+  the Norwegian summary finishes streaming: that's the moment where the
+  agent has clearly read Magnus's real notes, in Norwegian, about this
+  exact conference. The CP4 pause is where you hold for the laugh, then
+  say `continue` to kick off CP5.
