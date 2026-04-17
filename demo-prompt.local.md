@@ -89,47 +89,45 @@ pacing live; they are not optional and must not be skipped or batched.
 
 ### CP2 — Fresh session
 
-1. Briefly open the sidebar so the audience sees the prior-sessions list,
-   then close it.
-2. Click the "+" new-session button. Confirm the URL changes to a new
-   `/chat/<id>`.
-3. Status: "Fresh session at /chat/<id>."
+1. Click the "+" new-session button. Confirm the URL changes to a new
+   `/chat/<id>`. (The sidebar is already open by default on desktop;
+   don't toggle it.)
+2. Status: "Fresh session at /chat/<id>."
 
     PAUSE — say `continue` when ready.
 
-### CP3 — `@` mention demo
+### CP3 — `@` mention + read-summary turn (the payoff moment)
+
+This checkpoint merges the `@` mention demo with the read-summary turn —
+one pause, not two. The audience still sees the Fuse.js popup during typing;
+you just don't stop for it separately.
 
 1. Focus the prompt input. Type `@capra` and pause ~1s so the audience sees
    the Fuse.js-ranked popup.
-2. If a CapraCon-ish note appears, pick the top hit — inserts `[[...]]`
-   into the textarea. If no match, delete `@capra`.
-3. Status: "Mention demo shown." (include the wiki link if one was inserted)
-
-    PAUSE — say `continue` when ready.
-
-### CP4 — Read-summary turn (the payoff moment)
-
-1. Fill the textarea with EXACTLY:
+2. If a CapraCon-ish note appears, press Enter on the top hit — inserts
+   `[[...]]` into the textarea. If no match, delete `@capra`.
+3. Append a space, then type EXACTLY:
 
       "Finn alle notater jeg har om CapraCon. Les det mest relevante og gi
-       meg en kort oppsummering på norsk av hva jeg har skrevet."
+       meg en kort oppsummering på norsk av hva jeg har skrevet, i 2-3
+       setninger."
 
-   If a wiki link from CP3 is still in the textarea, leave it in — it's
-   stronger grounding.
-2. Submit. Audience should see: streaming reasoning, Task pill going
+   The `2-3 setninger` cap is load-bearing: it keeps streaming short so the
+   laugh lands before the audience gets bored of reading.
+4. Submit. Audience should see: streaming reasoning, Task pill going
    "Searching vault..." → listNotes → readNote (spinner → green check),
    then the final Norwegian summary rendered as markdown with wiki-link
    citations.
-3. Wait for streaming to fully finish (Task pill collapses to
-   "Completed N steps"). Expand one readNote tool card briefly so the
-   audience sees real content flowing through.
-4. Status: "Summary streamed. Pill: Completed N steps." This is the
-   payoff beat — the agent has clearly just read Magnus's real notes, in
-   Norwegian, about this exact conference. Hold here for the laugh.
+5. Wait for streaming to fully finish (Task pill collapses to
+   "Completed N steps").
+6. Status: "Summary streamed. Pill: Completed N steps."
+   (include the wiki link if one was inserted). This is the payoff beat —
+   the agent has clearly just read Magnus's real notes, in Norwegian, about
+   this exact conference. Hold here for the laugh.
 
     PAUSE — say `continue` when ready.
 
-### CP5 — Write-approval turn (TWO pauses inside)
+### CP4 — Write-approval turn (TWO pauses inside)
 
 1. Fill the textarea with EXACTLY:
 
@@ -159,7 +157,7 @@ pacing live; they are not optional and must not be skipped or batched.
 
     PAUSE — say `continue` when ready.
 
-### CP6 — Closing beat
+### CP5 — Closing beat
 
 1. Scroll to the bottom of the Pensieve chat. Leave the browser on the
    success state. Do NOT log out — Magnus might want to keep clicking
@@ -197,7 +195,7 @@ pacing live; they are not optional and must not be skipped or batched.
   take a screenshot, and hand control back to Magnus. Do NOT silently retry
   more than once.
 - Do not delete, update, or overwrite any existing note. The only write the
-  demo should perform is the single `createNote` in CP5.
+  demo should perform is the single `createNote` in CP4.
 - Do not commit, push, or run any git commands locally — the app handles
   the GitHub write via Octokit on the server. Your job is browser-only.
 - **Do NOT open** `https://github.com/magnusrodseth/vault/commits/main` in
@@ -219,8 +217,8 @@ pacing live; they are not optional and must not be skipped or batched.
 - **Have a printed fallback.** The prompt above is deterministic enough that
   you can read it aloud as a script if the live agent bails mid-demo — the
   audience still gets the point.
-- **The "twist" payoff line** lands best at the end of CP4, right after
+- **The "twist" payoff line** lands best at the end of CP3, right after
   the Norwegian summary finishes streaming: that's the moment where the
   agent has clearly read Magnus's real notes, in Norwegian, about this
-  exact conference. The CP4 pause is where you hold for the laugh, then
-  say `continue` to kick off CP5.
+  exact conference. The CP3 pause is where you hold for the laugh, then
+  say `continue` to kick off CP4.
