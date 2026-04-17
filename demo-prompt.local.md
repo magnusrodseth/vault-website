@@ -43,6 +43,36 @@ each meaningful step — short sentences, one line each, no markdown theatrics.
   Enter." Do not fill, guess, or try to reverse the hash in `.env.local`.
   Resume automation after the redirect away from /login fires.
 
+## Window layout (run ONCE right after opening in headed mode)
+
+The audience needs to see Magnus's slides on the right half of the screen
+while the agent drives Pensieve on the left. `agent-browser set viewport
+W H` resizes BOTH the OS window AND the in-page viewport in one shot — no
+AppleScript, no macOS Accessibility permission needed. This is the clean
+path; do NOT fall back to osascript/System Events.
+
+Use this bash snippet right after the first `agent-browser --headed open`
+(reads the current desktop bounds so it adapts if Magnus plugs into a
+projector):
+
+```bash
+bounds=$(osascript -e 'tell application "Finder" to get bounds of window of desktop')
+W=$(printf '%s\n' "$bounds" | awk -F', ' '{print $3}')
+H=$(printf '%s\n' "$bounds" | awk -F', ' '{print $4}')
+HALF=$((W / 2))
+USABLE_H=$((H - 25))
+agent-browser set viewport "$HALF" "$USABLE_H"
+```
+
+Do NOT use `window.resizeTo()` via `agent-browser eval` — Chrome silently
+ignores it on multi-tab windows (the call succeeds, the window stays the
+same size).
+
+Heads-up on the login screen: `/login` is a 2-panel responsive layout
+(background on the left, login card on the right). At a narrow viewport
+the left half looks empty/black. That is cosmetic, not a viewport bug.
+Once Magnus signs in, the chat UI fills the available width normally.
+
 ## App model you should know before clicking
 
 - Auth: iron-session cookie, set by POST /api/auth with { password }. Middleware
@@ -77,7 +107,10 @@ pacing live; they are not optional and must not be skipped or batched.
 
 ### CP1 — Login handoff
 
-1. Open the target URL with agent-browser in headed mode.
+1. Open the target URL with agent-browser in headed mode. Immediately after
+   the window appears, run the "Window layout" bash snippet above to pin
+   the Chrome window to the left half of the screen at full usable height.
+   Do this ONCE — the window stays resized for the rest of the demo.
 2. Snapshot. Verify /login (Pensieve card, Password textbox, Sign in button).
 3. Focus the password input. Announce: "Magnus — your turn. Paste from
    1Password and hit Enter." Narrate the handoff as a feature: "I can drive
