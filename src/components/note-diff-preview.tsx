@@ -180,7 +180,10 @@ export function NoteDiffPreview({
 
   return (
     <Collapsible defaultOpen={defaultOpen} className="w-full">
-      <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md border border-border bg-accent p-2 text-sm hover:bg-accent/80 transition-colors group">
+      <CollapsibleTrigger
+        aria-label={`Toggle diff for ${filename}`}
+        className="flex w-full items-center justify-between rounded-t-md border border-border bg-accent p-2 text-sm hover:bg-accent/80 transition-colors group"
+      >
         <div className="flex items-center gap-2">
           <FileIcon className="h-4 w-4 text-muted-foreground" />
           <span className="font-medium">{filename}</span>

@@ -346,6 +346,7 @@ export function NoteMentionPopup({
                 onChange={handleSearchChange}
                 onKeyDown={handleSearchKeyDown}
                 placeholder="Search notes..."
+                aria-label="Search notes"
                 className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
               />
             </div>
@@ -389,6 +390,7 @@ export function NoteMentionPopup({
           onChange={handleSearchChange}
           onKeyDown={handleSearchKeyDown}
           placeholder="Search notes..."
+          aria-label="Search notes"
           className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
         />
       </div>

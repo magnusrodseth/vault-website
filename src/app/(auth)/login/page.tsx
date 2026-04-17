@@ -57,6 +57,7 @@ export default function LoginPage() {
             <Input
               type="password"
               placeholder="Password"
+              aria-label="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoFocus

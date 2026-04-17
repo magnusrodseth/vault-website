@@ -265,17 +265,28 @@ export default function ChatPage() {
             size="icon"
             onClick={() => setSidebarOpen(true)}
             className="md:hidden"
+            aria-label="Open conversations menu"
           >
             <MenuIcon className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-2 flex-1">
-            <img src="/logo.png" alt="Pensieve" className="h-9 w-9" />
+            <img src="/logo.png" alt="" className="h-9 w-9" />
             <h1 className="text-lg font-semibold">Pensieve</h1>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleNewSession}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleNewSession}
+            aria-label="New conversation"
+          >
             <PlusIcon className="h-5 w-5" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={handleLogout}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleLogout}
+            aria-label="Log out"
+          >
             <LogOutIcon className="h-5 w-5" />
           </Button>
         </header>
@@ -798,6 +809,7 @@ export default function ChatPage() {
                             toast.success("Regenerating response...");
                           }}
                           tooltip="Retry"
+                          aria-label="Retry response"
                         >
                           <RefreshCcwIcon className="size-3" />
                         </MessageAction>
@@ -811,6 +823,7 @@ export default function ChatPage() {
                             toast.success("Copied to clipboard");
                           }}
                           tooltip="Copy"
+                          aria-label="Copy message"
                         >
                           <CopyIcon className="size-3" />
                         </MessageAction>
@@ -857,6 +870,7 @@ export default function ChatPage() {
                   setCursorPosition(e.currentTarget.selectionStart)
                 }
                 placeholder="Ask about your vault... (@ to search notes)"
+                aria-label="Ask about your vault"
               />
             </PromptInputBody>
             <PromptInputFooter>

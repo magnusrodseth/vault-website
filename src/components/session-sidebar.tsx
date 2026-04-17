@@ -57,13 +57,24 @@ export function SessionSidebar({
         sessions.map((session) => (
           <div
             key={session.id}
+            role="button"
+            tabIndex={0}
+            aria-label={`Open conversation: ${session.title}`}
+            aria-current={currentSessionId === session.id ? "true" : undefined}
             className={cn(
-              "group flex items-center gap-2 rounded-md px-2 py-2 cursor-pointer hover:bg-muted",
+              "group flex items-center gap-2 rounded-md px-2 py-2 cursor-pointer hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               currentSessionId === session.id && "bg-muted",
             )}
             onClick={() => {
               onSelectSession(session.id);
               onOpenChange(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onSelectSession(session.id);
+                onOpenChange(false);
+              }
             }}
           >
             <MessageSquareIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -78,6 +89,7 @@ export function SessionSidebar({
               size="icon"
               className="h-6 w-6"
               onClick={(e) => handleDelete(e, session.id)}
+              aria-label={`Delete conversation: ${session.title}`}
             >
               <TrashIcon className="h-3 w-3" />
             </Button>
@@ -102,7 +114,10 @@ export function SessionSidebar({
       </Sheet>
 
       {/* Desktop: Always visible sidebar */}
-      <aside className="hidden md:flex w-64 border-r flex-col p-4">
+      <aside
+        aria-label="Conversations"
+        className="hidden md:flex w-64 border-r flex-col p-4"
+      >
         <h2 className="font-semibold mb-4">Conversations</h2>
         <SessionList />
       </aside>
