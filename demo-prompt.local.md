@@ -60,7 +60,11 @@ bounds=$(osascript -e 'tell application "Finder" to get bounds of window of desk
 W=$(printf '%s\n' "$bounds" | awk -F', ' '{print $3}')
 H=$(printf '%s\n' "$bounds" | awk -F', ' '{print $4}')
 HALF=$((W / 2))
-USABLE_H=$((H - 25))
+# set viewport sizes the CONTENT area, not the full window. Chrome's
+# tab strip + address bar add ~155px; the macOS menu bar adds ~25px.
+# Subtract both or the bottom of the page spills below the desktop and
+# the Pensieve prompt input gets clipped.
+USABLE_H=$((H - 180))
 agent-browser set viewport "$HALF" "$USABLE_H"
 ```
 
@@ -107,10 +111,14 @@ pacing live; they are not optional and must not be skipped or batched.
 
 ### CP1 — Login handoff
 
-1. Open the target URL with agent-browser in headed mode. Immediately after
-   the window appears, run the "Window layout" bash snippet above to pin
-   the Chrome window to the left half of the screen at full usable height.
-   Do this ONCE — the window stays resized for the rest of the demo.
+1. **Preflight:** always run `agent-browser close 2>/dev/null || true`
+   before the first `--headed open`. The CLI can fail with "Browser not
+   launched. Call launch first." when there's stale session state on disk
+   but no live browser; `close` is idempotent and clears the inconsistency.
+   Then open the target URL with agent-browser in headed mode. Immediately
+   after the window appears, run the "Window layout" bash snippet above to
+   pin the Chrome window to the left half of the screen at full usable
+   height. Do this ONCE — the window stays resized for the rest of the demo.
 2. Snapshot. Verify /login (Pensieve card, Password textbox, Sign in button).
 3. Focus the password input. Announce: "Magnus — your turn. Paste from
    1Password and hit Enter." Narrate the handoff as a feature: "I can drive
